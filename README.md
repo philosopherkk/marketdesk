@@ -2,7 +2,10 @@
 
 Repo: https://github.com/philosopherkk/marketdesk
 
-Files: `index.html`, `styles.css`, `core.js`, `ui.js`, `chart-quotes.js`, `journal.js`, `market-panels.js`, `data/tape-daily.json`.
+**Version:** see `VERSION` (also shown in the app header/footer). Bump version + HKT update date on every publish.
+
+Files: `index.html`, `styles.css`, `core.js`, `ui.js`, `chart-quotes.js`, `journal.js`, `market-panels.js`, `data/tape-daily.json`, `VERSION`.
+
 
 ## Run locally
 
