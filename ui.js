@@ -20,10 +20,11 @@ $("import-file").addEventListener("change", async event => {
     if (!confirm(`Replace current workspace with this backup?\n${preview}`)) return;
     state = data;
     persist();
+    if (typeof draftOverlays !== "undefined") draftOverlays = null;
     $("symbol-input").value = state.selected;
     $("current-symbol").textContent = state.selected;
     $("interval").value = state.interval;
-    applyFontScale(); applyTheme();
+    applyFontScale(); applyTheme(); applyTradeFormCollapsed();
     renderMarkets(); renderIndicatorControls(); renderWatchlist();
     resetTradeForm(); renderJournal(); renderChart(); loadQuote();
     toast("Backup imported.");
@@ -129,13 +130,25 @@ document.querySelectorAll("[data-font-scale]").forEach(btn => {
 $("theme-toggle").addEventListener("click", () => {
   const current = resolvedTheme();
   state.theme = current === "light" ? "dark" : "light";
-  persist(); applyTheme(); renderChart();
+  persist(); applyTheme();
+  if (state.chartProvider === "native" && window.MarketDeskNative) MarketDeskNative.setThemePreserveRange();
+  else renderChart();
+  if (typeof renderOverlayEditor === "function") renderOverlayEditor();
 });
 window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
-  if (state.theme === "system") { applyTheme(); renderChart(); }
+  if (state.theme === "system") {
+    applyTheme();
+    if (state.chartProvider === "native" && window.MarketDeskNative) MarketDeskNative.setThemePreserveRange();
+    else renderChart();
+  }
+});
+$("toggle-trade-form").addEventListener("click", () => {
+  state.tradeFormCollapsed = !state.tradeFormCollapsed;
+  persist(); applyTradeFormCollapsed();
 });
 applyFontScale();
 applyTheme();
+applyTradeFormCollapsed();
 document.querySelectorAll("[data-app-version]").forEach(el => { el.textContent = APP_VERSION; });
 document.querySelectorAll("[data-app-updated]").forEach(el => { el.textContent = APP_UPDATED; });
 if (!persistenceBlocked) $("storage-label").textContent = "Saved on this device/browser only · marketdesk:v1";

@@ -2,7 +2,7 @@
 const STORAGE_KEY = "marketdesk:v1";
 const BREADTH_CACHE_KEY = "marketdesk:breadth-cache:v1";
 /** Bump on every publish. Shown in header/footer. Keep in sync with VERSION file. */
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.0";
 const APP_UPDATED = "2026-09-08 HKT";
 const $ = id => document.getElementById(id);
 const CATALOG = [
@@ -31,22 +31,99 @@ const INTERVALS = ["5", "15", "60", "240", "D", "W", "M"];
 const MARKETS = ["All", "US", "HK", "ETF", "Futures", "Crypto", "Other"];
 const FONT_SCALES = ["small", "medium", "large"];
 const THEMES = ["dark", "light", "system"];
-const defaultMaOverlays = () => ({ emas: true, sma150200: true });
+const CHART_PROVIDERS = ["tradingview", "native"];
+const MA_PRESETS = ["existing", "momentum", "trend", "fast", "weekly"];
 const YAHOO_EX_TO_TV = {
   NMS: "NASDAQ", NGM: "NASDAQ", NCM: "NASDAQ", NAS: "NASDAQ", NIQ: "NASDAQ",
   NYQ: "NYSE", NYE: "NYSE", NYS: "NYSE",
   ASE: "AMEX", AMX: "AMEX", NYC: "AMEX", PCX: "AMEX", ARCA: "AMEX", BTS: "AMEX"
 };
-const US_PREFIXED = /^(NASDAQ|NYSE|AMEX):[A-Z0-9][A-Z0-9.-]{0,9}$/;
 const EXCHANGE_PREFIXED = /^[A-Z0-9_]+:[A-Z0-9_.!/-]+$/;
 const BARE_US = /^[A-Z][A-Z0-9.-]{0,9}$/;
+
+/** Astra DEFAULT_OVERLAYS — Existing MarketDesk default (upgrade-safe). */
+const DEFAULT_OVERLAYS = () => ([
+  { id: "ema10", enabled: true, type: "EMA", period: 10, colorDark: "#f59e0b", colorLight: "#d97706", width: 1, style: "solid" },
+  { id: "ema20", enabled: true, type: "EMA", period: 20, colorDark: "#38bdf8", colorLight: "#0284c7", width: 1, style: "solid" },
+  { id: "sma50", enabled: true, type: "SMA", period: 50, colorDark: "#a78bfa", colorLight: "#7c3aed", width: 1, style: "solid" },
+  { id: "sma150", enabled: false, type: "SMA", period: 150, colorDark: "#34d399", colorLight: "#059669", width: 1, style: "dashed" },
+  { id: "sma200", enabled: true, type: "SMA", period: 200, colorDark: "#f472b6", colorLight: "#db2777", width: 2, style: "solid" }
+]);
+
+const PRESET_OVERLAYS = {
+  existing: DEFAULT_OVERLAYS,
+  momentum: () => ([
+    { id: "ema10", enabled: true, type: "EMA", period: 10, colorDark: "#f59e0b", colorLight: "#d97706", width: 1, style: "solid" },
+    { id: "ema20", enabled: true, type: "EMA", period: 20, colorDark: "#38bdf8", colorLight: "#0284c7", width: 1, style: "solid" },
+    { id: "sma50", enabled: true, type: "SMA", period: 50, colorDark: "#a78bfa", colorLight: "#7c3aed", width: 1, style: "solid" },
+    { id: "sma150", enabled: false, type: "SMA", period: 150, colorDark: "#34d399", colorLight: "#059669", width: 1, style: "dashed" },
+    { id: "sma200", enabled: false, type: "SMA", period: 200, colorDark: "#f472b6", colorLight: "#db2777", width: 2, style: "solid" }
+  ]),
+  trend: () => ([
+    { id: "ema10", enabled: false, type: "EMA", period: 10, colorDark: "#f59e0b", colorLight: "#d97706", width: 1, style: "solid" },
+    { id: "ema20", enabled: true, type: "EMA", period: 20, colorDark: "#38bdf8", colorLight: "#0284c7", width: 1, style: "solid" },
+    { id: "sma50", enabled: true, type: "SMA", period: 50, colorDark: "#a78bfa", colorLight: "#7c3aed", width: 1, style: "solid" },
+    { id: "sma150", enabled: true, type: "SMA", period: 150, colorDark: "#34d399", colorLight: "#059669", width: 1, style: "dashed" },
+    { id: "sma200", enabled: true, type: "SMA", period: 200, colorDark: "#f472b6", colorLight: "#db2777", width: 2, style: "solid" }
+  ]),
+  fast: () => ([
+    { id: "ema10", enabled: true, type: "EMA", period: 10, colorDark: "#f59e0b", colorLight: "#d97706", width: 2, style: "solid" },
+    { id: "ema20", enabled: true, type: "EMA", period: 20, colorDark: "#38bdf8", colorLight: "#0284c7", width: 1, style: "solid" },
+    { id: "sma50", enabled: false, type: "SMA", period: 50, colorDark: "#a78bfa", colorLight: "#7c3aed", width: 1, style: "solid" },
+    { id: "sma150", enabled: false, type: "SMA", period: 150, colorDark: "#34d399", colorLight: "#059669", width: 1, style: "dashed" },
+    { id: "sma200", enabled: false, type: "SMA", period: 200, colorDark: "#f472b6", colorLight: "#db2777", width: 2, style: "solid" }
+  ]),
+  weekly: () => ([
+    { id: "ema10", enabled: false, type: "EMA", period: 10, colorDark: "#f59e0b", colorLight: "#d97706", width: 1, style: "solid" },
+    { id: "ema20", enabled: true, type: "EMA", period: 21, colorDark: "#38bdf8", colorLight: "#0284c7", width: 1, style: "solid" },
+    { id: "sma50", enabled: true, type: "SMA", period: 50, colorDark: "#a78bfa", colorLight: "#7c3aed", width: 1, style: "solid" },
+    { id: "sma150", enabled: true, type: "SMA", period: 150, colorDark: "#34d399", colorLight: "#059669", width: 1, style: "dashed" },
+    { id: "sma200", enabled: true, type: "SMA", period: 200, colorDark: "#f472b6", colorLight: "#db2777", width: 2, style: "solid" }
+  ])
+};
+
+function finiteOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function validOverlay(o) {
+  return o && typeof o.id === "string" && typeof o.enabled === "boolean" &&
+    ["EMA", "SMA"].includes(o.type) && Number.isInteger(o.period) && o.period >= 1 && o.period <= 500 &&
+    typeof o.colorDark === "string" && typeof o.colorLight === "string" &&
+    Number.isFinite(o.width) && o.width >= 1 && o.width <= 6 &&
+    ["solid", "dashed"].includes(o.style);
+}
+
+function overlaysFromLegacyMaOverlays(legacy, hadEma, hadSma) {
+  const base = DEFAULT_OVERLAYS();
+  if (legacy && typeof legacy === "object" && !Array.isArray(legacy)) {
+    if (typeof legacy.emas === "boolean") {
+      base.forEach(o => { if (o.type === "EMA") o.enabled = legacy.emas; });
+    }
+    if (typeof legacy.sma150200 === "boolean") {
+      base.forEach(o => {
+        if (o.period === 150) o.enabled = false;
+        if (o.period === 200) o.enabled = legacy.sma150200;
+        if (o.period === 50 && o.type === "SMA") o.enabled = legacy.sma150200 || o.enabled;
+      });
+    }
+  }
+  if (hadEma) base.forEach(o => { if (o.type === "EMA") o.enabled = true; });
+  if (hadSma) base.forEach(o => { if (o.period === 200) o.enabled = true; });
+  return base;
+}
 
 const defaults = () => ({
   version: 1,
   selected: "NASDAQ:AAPL",
   interval: "D",
   indicators: ["RSI", "MACD"],
-  maOverlays: defaultMaOverlays(),
+  overlays: DEFAULT_OVERLAYS(),
+  chartProvider: "tradingview",
+  maPreset: "existing",
+  tradeFormCollapsed: false,
   watchlist: CATALOG.map(item => item.symbol),
   trades: [],
   fontScale: "medium",
@@ -56,8 +133,9 @@ const defaults = () => ({
 
 const validSymbol = value => typeof value === "string" && value.length <= 80 && EXCHANGE_PREFIXED.test(value);
 function defaultStopLoss(side, entry) {
-  if (!Number.isFinite(entry) || entry <= 0) return null;
-  return side === "short" ? Number((entry * 1.05).toFixed(8)) : Number((entry * 0.95).toFixed(8));
+  const e = finiteOrNull(entry);
+  if (e === null || e <= 0) return null;
+  return side === "short" ? Number((e * 1.05).toFixed(8)) : Number((e * 0.95).toFixed(8));
 }
 function validTrade(t) {
   return t && typeof t.id === "string" && validSymbol(t.symbol) && ["long", "short"].includes(t.side) &&
@@ -70,23 +148,33 @@ function validTrade(t) {
     Number.isFinite(t.fees) && t.fees >= 0 && typeof t.currency === "string" && /^[A-Z0-9]{2,10}$/.test(t.currency) &&
     typeof t.notes === "string" && t.notes.length <= 2000;
 }
+
 function migrateState(data) {
   const next = { ...defaults(), ...data, version: 1 };
   if (!FONT_SCALES.includes(next.fontScale)) next.fontScale = "medium";
   if (!THEMES.includes(next.theme)) next.theme = "dark";
+  if (!CHART_PROVIDERS.includes(next.chartProvider)) next.chartProvider = "tradingview";
+  if (!MA_PRESETS.includes(next.maPreset)) next.maPreset = "existing";
+  next.tradeFormCollapsed = !!next.tradeFormCollapsed;
   if (next.tapeOverride != null && typeof next.tapeOverride !== "object") next.tapeOverride = null;
-  // Migrate legacy SMA/EMA indicator toggles → named MA overlay sets.
-  const rawIndicators = Array.isArray(next.indicators) ? next.indicators : [];
-  const hadEma = rawIndicators.includes("EMA");
-  const hadSma = rawIndicators.includes("SMA");
-  next.indicators = rawIndicators.filter(key => Object.hasOwn(INDICATORS, key));
-  if (!next.indicators.length) next.indicators = ["RSI", "MACD"];
-  const overlays = { ...defaultMaOverlays(), ...(next.maOverlays || {}) };
-  if (typeof overlays.emas !== "boolean") overlays.emas = true;
-  if (typeof overlays.sma150200 !== "boolean") overlays.sma150200 = true;
-  if (hadEma) overlays.emas = true;
-  if (hadSma) overlays.sma150200 = true;
-  next.maOverlays = overlays;
+
+  const rawIndicators = Array.isArray(data.indicators) ? data.indicators : null;
+  if (rawIndicators) {
+    // Preserve intentionally empty oscillator selection — do not restore RSI/MACD.
+    next.indicators = rawIndicators.filter(key => Object.hasOwn(INDICATORS, key));
+  } else {
+    next.indicators = ["RSI", "MACD"];
+  }
+  const hadEma = Array.isArray(data.indicators) && data.indicators.includes("EMA");
+  const hadSma = Array.isArray(data.indicators) && data.indicators.includes("SMA");
+
+  if (Array.isArray(data.overlays) && data.overlays.every(validOverlay)) {
+    next.overlays = data.overlays.map(o => ({ ...o }));
+  } else {
+    next.overlays = overlaysFromLegacyMaOverlays(data.maOverlays, hadEma, hadSma);
+  }
+  delete next.maOverlays;
+
   next.watchlist = [...new Set((next.watchlist || []).filter(validSymbol))];
   next.trades = (next.trades || []).map(t => {
     const trade = { target: null, exitDate: null, stopLoss: null, ...t };
@@ -97,13 +185,14 @@ function migrateState(data) {
   });
   if (!validSymbol(next.selected) || !INTERVALS.includes(next.interval) ||
       !Array.isArray(next.indicators) || !next.indicators.every(key => Object.hasOwn(INDICATORS, key)) ||
-      !next.maOverlays || typeof next.maOverlays.emas !== "boolean" || typeof next.maOverlays.sma150200 !== "boolean" ||
+      !Array.isArray(next.overlays) || !next.overlays.every(validOverlay) ||
       !Array.isArray(next.watchlist) || !next.watchlist.every(validSymbol) ||
       !Array.isArray(next.trades) || !next.trades.every(validTrade)) {
     throw new Error("Invalid saved data");
   }
   return next;
 }
+
 function localDate() {
   const d = new Date();
   return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
@@ -164,7 +253,6 @@ async function resolveBareUsSymbol(bare) {
   if (!preferred) throw new Error("No US listing found for " + bare + ". Try NASDAQ:… / NYSE:… or HKEX:…");
   return `${yahooExToTv(preferred.exchange)}:${bare.replace(/-/g, ".")}`;
 }
-/** Sync or async: prefixed symbols sync; bare US tickers may need lookup. */
 async function normalizeSymbol(value) {
   const raw = value.trim().toUpperCase();
   if (!raw) throw new Error("Enter a ticker, for example AAPL or HKEX:700.");
@@ -174,18 +262,6 @@ async function normalizeSymbol(value) {
   }
   if (!BARE_US.test(raw)) throw new Error("Use AAPL (US default) or NASDAQ:AAPL / HKEX:700.");
   return resolveBareUsSymbol(raw);
-}
-function normalizeSymbolSync(value) {
-  const raw = value.trim().toUpperCase();
-  if (EXCHANGE_PREFIXED.test(raw)) {
-    if (!validSymbol(raw)) throw new Error("Use EXCHANGE:TICKER, for example NASDAQ:AAPL or HKEX:700.");
-    return raw;
-  }
-  if (!BARE_US.test(raw)) throw new Error("Use AAPL (US default) or NASDAQ:AAPL / HKEX:700.");
-  const known = catalogTvForBare(raw);
-  if (known) return known;
-  // Optimistic US NASDAQ path for typed bare symbols already on watchlist forms when offline lookup not run yet
-  throw new Error("Resolving US listing… use Open chart once, or type NASDAQ:" + raw);
 }
 
 function applyFontScale() {
@@ -204,4 +280,11 @@ function applyTheme() {
   document.documentElement.dataset.theme = theme;
   const btn = $("theme-toggle");
   if (btn) btn.textContent = theme === "light" ? "Dark" : "Daylight";
+}
+function applyTradeFormCollapsed() {
+  const panel = document.querySelector(".trade-panel");
+  if (!panel) return;
+  panel.classList.toggle("collapsed", !!state.tradeFormCollapsed);
+  const btn = $("toggle-trade-form");
+  if (btn) btn.textContent = state.tradeFormCollapsed ? "Show trade form" : "Hide trade form";
 }

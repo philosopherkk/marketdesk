@@ -1,22 +1,42 @@
-function buildChartStudies() {
-  const studies = state.indicators.map(key => INDICATORS[key]);
-  if (state.maOverlays && state.maOverlays.emas) {
-    studies.push(
-      { id: "MAExp@tv-basicstudies", inputs: { length: 10 } },
-      { id: "MAExp@tv-basicstudies", inputs: { length: 20 } },
-      { id: "MAExp@tv-basicstudies", inputs: { length: 50 } }
-    );
-  }
-  if (state.maOverlays && state.maOverlays.sma150200) {
-    studies.push(
-      { id: "MASimple@tv-basicstudies", inputs: { length: 150 } },
-      { id: "MASimple@tv-basicstudies", inputs: { length: 200 } }
-    );
+"use strict";
+
+/** Draft overlays edited in UI; committed overlays live in state.overlays until Apply. */
+let draftOverlays = null;
+let quoteRequestId = 0;
+let tvPeriodNote = "TV embed: object-form MA studies with inputs.length are best-effort; prefer Native chart for exact periods.";
+
+function cloneOverlays(list) {
+  return (list || []).map(o => ({ ...o }));
+}
+function ensureDraftOverlays() {
+  if (!draftOverlays) draftOverlays = cloneOverlays(state.overlays);
+  return draftOverlays;
+}
+
+function buildTvStudiesFromOverlays(overlays, oscillators) {
+  const studies = (oscillators || []).map(key => INDICATORS[key]);
+  for (const o of overlays || []) {
+    if (!o.enabled) continue;
+    studies.push({
+      id: o.type === "EMA" ? "MAExp@tv-basicstudies" : "MASimple@tv-basicstudies",
+      version: 60,
+      inputs: { length: o.period }
+    });
   }
   return studies;
 }
+
 function renderChart() {
-  const host = $("chart"); host.replaceChildren();
+  const host = $("chart");
+  host.replaceChildren();
+  if (state.chartProvider === "native") {
+    if (window.MarketDeskNative && typeof MarketDeskNative.render === "function") {
+      MarketDeskNative.render(host);
+    } else {
+      host.innerHTML = "<p class='notice-inline'>Native chart module failed to load.</p>";
+    }
+    return;
+  }
   const container = document.createElement("div");
   container.className = "tradingview-widget-container";
   container.style.height = "100%"; container.style.width = "100%";
@@ -41,47 +61,140 @@ function renderChart() {
     hide_top_toolbar: false, hide_side_toolbar: false,
     hide_legend: false, hide_volume: false, withdateranges: true, save_image: true,
     allow_symbol_change: false, calendar: false, details: false, hotlist: false,
-    studies: buildChartStudies(), support_host: "https://www.tradingview.com"
+    studies: buildTvStudiesFromOverlays(state.overlays, state.indicators),
+    support_host: "https://www.tradingview.com"
   });
   script.onerror = () => { if (container.isConnected) toast("Chart script could not load."); };
   container.append(chart, credit); host.appendChild(container); container.appendChild(script);
+  const note = $("tv-ma-note");
+  if (note) note.textContent = tvPeriodNote + " Use chart mode Native for verified SMA/EMA periods.";
 }
-function renderIndicatorControls() {
+
+function renderOscillatorControls() {
   $("indicator-controls").replaceChildren();
   for (const key of Object.keys(INDICATORS)) {
     const label = document.createElement("label"); label.className = "check";
     const checkbox = document.createElement("input"); checkbox.type = "checkbox";
     checkbox.checked = state.indicators.includes(key);
     checkbox.addEventListener("change", () => {
-      state.indicators = checkbox.checked ? [...new Set([...state.indicators, key])] : state.indicators.filter(item => item !== key);
-      persist(); renderChart();
+      state.indicators = checkbox.checked
+        ? [...new Set([...state.indicators, key])]
+        : state.indicators.filter(item => item !== key);
+      persist();
+      // Oscillators still require TV rebuild; native ignores them for now.
+      if (state.chartProvider === "tradingview") renderChart();
     });
     label.append(checkbox, document.createTextNode(key));
     $("indicator-controls").appendChild(label);
   }
-  const maHost = $("ma-overlay-controls");
-  if (maHost) {
-    maHost.replaceChildren();
-    const sets = [
-      { key: "emas", label: "EMAs 10/20/50" },
-      { key: "sma150200", label: "SMA 150/200" }
-    ];
-    for (const set of sets) {
-      const label = document.createElement("label"); label.className = "check";
-      const checkbox = document.createElement("input"); checkbox.type = "checkbox";
-      checkbox.checked = !!(state.maOverlays && state.maOverlays[set.key]);
-      checkbox.addEventListener("change", () => {
-        state.maOverlays = { ...defaultMaOverlays(), ...state.maOverlays, [set.key]: checkbox.checked };
-        persist(); renderChart();
-      });
-      label.append(checkbox, document.createTextNode(set.label));
-      maHost.appendChild(label);
-    }
-  }
 }
+
+function renderOverlayEditor() {
+  const host = $("ma-overlay-controls");
+  if (!host) return;
+  host.replaceChildren();
+  const drafts = ensureDraftOverlays();
+  const table = document.createElement("div");
+  table.className = "overlay-editor stack";
+  for (const o of drafts) {
+    const row = document.createElement("div");
+    row.className = "overlay-row";
+    const en = document.createElement("input"); en.type = "checkbox"; en.checked = o.enabled;
+    en.addEventListener("change", () => { o.enabled = en.checked; });
+    const type = document.createElement("select");
+    ["EMA", "SMA"].forEach(t => {
+      const opt = document.createElement("option"); opt.value = t; opt.textContent = t; if (o.type === t) opt.selected = true;
+      type.appendChild(opt);
+    });
+    type.addEventListener("change", () => { o.type = type.value; });
+    const period = document.createElement("input"); period.type = "number"; period.min = 1; period.max = 500; period.value = o.period;
+    period.style.width = "64px";
+    period.addEventListener("change", () => {
+      const n = Math.round(Number(period.value));
+      o.period = Number.isFinite(n) && n >= 1 ? n : o.period;
+      period.value = o.period;
+    });
+    const color = document.createElement("input"); color.type = "color";
+    color.value = resolvedTheme() === "light" ? o.colorLight : o.colorDark;
+    color.addEventListener("input", () => {
+      if (resolvedTheme() === "light") o.colorLight = color.value; else o.colorDark = color.value;
+    });
+    const width = document.createElement("input"); width.type = "number"; width.min = 1; width.max = 6; width.value = o.width;
+    width.style.width = "52px";
+    width.addEventListener("change", () => {
+      const n = Math.round(Number(width.value));
+      o.width = Number.isFinite(n) && n >= 1 ? Math.min(6, n) : o.width;
+      width.value = o.width;
+    });
+    const style = document.createElement("select");
+    ["solid", "dashed"].forEach(s => {
+      const opt = document.createElement("option"); opt.value = s; opt.textContent = s; if (o.style === s) opt.selected = true;
+      style.appendChild(opt);
+    });
+    style.addEventListener("change", () => { o.style = style.value; });
+    const name = document.createElement("span"); name.className = "muted"; name.textContent = o.id;
+    row.append(en, type, period, color, width, style, name);
+    table.appendChild(row);
+  }
+  const actions = document.createElement("div"); actions.className = "row";
+  const apply = document.createElement("button"); apply.type = "button"; apply.className = "primary"; apply.textContent = "Apply overlays";
+  apply.addEventListener("click", () => {
+    state.overlays = cloneOverlays(draftOverlays);
+    state.maPreset = "existing"; // custom after edit
+    persist();
+    if (state.chartProvider === "native" && window.MarketDeskNative) MarketDeskNative.applyOverlays(state.overlays);
+    else renderChart();
+    toast("Overlays applied.");
+  });
+  const reset = document.createElement("button"); reset.type = "button"; reset.textContent = "Reset draft";
+  reset.addEventListener("click", () => { draftOverlays = cloneOverlays(state.overlays); renderOverlayEditor(); });
+  actions.append(apply, reset);
+  host.append(table, actions);
+}
+
+function renderChartProviderControls() {
+  const sel = $("chart-provider");
+  if (sel) sel.value = state.chartProvider;
+  const preset = $("ma-preset");
+  if (preset) preset.value = state.maPreset;
+}
+
+function renderIndicatorControls() {
+  renderOscillatorControls();
+  renderOverlayEditor();
+  renderChartProviderControls();
+}
+
 $("interval").value = state.interval;
-$("interval").addEventListener("change", event => { state.interval = event.target.value; persist(); renderChart(); });
+$("interval").addEventListener("change", event => {
+  state.interval = event.target.value; persist();
+  if (state.chartProvider === "native" && window.MarketDeskNative) MarketDeskNative.setIntervalLabel(state.interval);
+  else renderChart();
+});
 $("reload-chart").addEventListener("click", renderChart);
+
+document.addEventListener("DOMContentLoaded", () => {});
+const providerEl = $("chart-provider");
+if (providerEl) {
+  providerEl.addEventListener("change", () => {
+    state.chartProvider = providerEl.value;
+    persist(); renderChart();
+  });
+}
+const presetEl = $("ma-preset");
+if (presetEl) {
+  presetEl.addEventListener("change", () => {
+    const key = presetEl.value;
+    if (!PRESET_OVERLAYS[key]) return;
+    state.maPreset = key;
+    state.overlays = PRESET_OVERLAYS[key]();
+    draftOverlays = cloneOverlays(state.overlays);
+    persist(); renderOverlayEditor();
+    if (state.chartProvider === "native" && window.MarketDeskNative) MarketDeskNative.applyOverlays(state.overlays);
+    else renderChart();
+  });
+}
+
 function toYahooSymbol(tv) {
   const [ex, raw] = tv.split(":");
   const ticker = raw.replace(/\./g, "-");
@@ -98,15 +211,13 @@ function toYahooSymbol(tv) {
   }
   return ticker;
 }
-async function fetchJson(url) {
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  return res.json();
-}
-const fmtPx = v => Number.isFinite(Number(v)) ? Number(v).toLocaleString("en-US", { maximumFractionDigits: 8 }) : "—";
+const fmtPx = v => {
+  const n = finiteOrNull(v);
+  return n === null ? "—" : n.toLocaleString("en-US", { maximumFractionDigits: 8 });
+};
 const fmtVol = v => {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return "—";
+  const n = finiteOrNull(v);
+  if (n === null) return "—";
   if (n >= 1e9) return (n / 1e9).toFixed(2) + "B";
   if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
   if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
@@ -124,44 +235,46 @@ function clearQuoteFields(placeholder) {
   $("quote-52w").textContent = placeholder;
 }
 async function loadQuote() {
+  const requestId = ++quoteRequestId;
+  const symbolAtStart = state.selected;
   const chEl = $("quote-change"), meta = $("quote-meta");
   clearQuoteFields("…");
   meta.textContent = "Fetching day snapshot…";
   try {
-    const y = toYahooSymbol(state.selected);
+    const y = toYahooSymbol(symbolAtStart);
     const data = await fetchJson("https://finance-query.com/v2/quote/" + encodeURIComponent(y));
-    // Session end / last print from the snapshot — not a streamed tick.
-    const close = data.regularMarketPrice ?? data.currentPrice ?? data.regularMarketPreviousClose;
-    if (!Number.isFinite(Number(close))) throw new Error("no close");
-    const prev = data.regularMarketPreviousClose ?? data.previousClose;
-    const open = data.regularMarketOpen ?? data.open;
-    const hi = data.regularMarketDayHigh ?? data.dayHigh;
-    const lo = data.regularMarketDayLow ?? data.dayLow;
-    const chPct = Number.isFinite(Number(data.regularMarketChangePercent))
-      ? Number(data.regularMarketChangePercent)
-      : (Number.isFinite(Number(prev)) && Number(prev) !== 0 ? (Number(close) - Number(prev)) / Number(prev) * 100 : NaN);
-    const chAbs = data.regularMarketChange;
+    if (requestId !== quoteRequestId || state.selected !== symbolAtStart) return; // stale
+    const close = finiteOrNull(data.regularMarketPrice ?? data.currentPrice ?? data.regularMarketPreviousClose);
+    if (close === null) throw new Error("no close");
+    const prev = finiteOrNull(data.regularMarketPreviousClose ?? data.previousClose);
+    const open = finiteOrNull(data.regularMarketOpen ?? data.open);
+    const hi = finiteOrNull(data.regularMarketDayHigh ?? data.dayHigh);
+    const lo = finiteOrNull(data.regularMarketDayLow ?? data.dayLow);
+    const chPctRaw = finiteOrNull(data.regularMarketChangePercent);
+    const chPct = chPctRaw !== null ? chPctRaw
+      : (prev !== null && prev !== 0 ? (close - prev) / prev * 100 : null);
+    const chAbs = finiteOrNull(data.regularMarketChange);
     $("quote-open").textContent = fmtPx(open);
     $("quote-high").textContent = fmtPx(hi);
     $("quote-low").textContent = fmtPx(lo);
     $("quote-price").textContent = fmtPx(close);
-    if (Number.isFinite(chPct)) {
-      const abs = Number.isFinite(Number(chAbs)) ? `${Number(chAbs) >= 0 ? "+" : ""}${fmtPx(chAbs)} ` : "";
+    if (chPct !== null) {
+      const abs = chAbs !== null ? `${chAbs >= 0 ? "+" : ""}${fmtPx(chAbs)} ` : "";
       chEl.textContent = `${abs}${chPct >= 0 ? "+" : ""}${chPct.toFixed(2)}%`;
       chEl.className = chPct >= 0 ? "positive" : "negative";
     } else chEl.textContent = "—";
     $("quote-prev").textContent = fmtPx(prev);
     $("quote-vol").textContent = fmtVol(data.regularMarketVolume ?? data.volume);
-    const wlo = data.fiftyTwoWeekLow, whi = data.fiftyTwoWeekHigh;
-    $("quote-52w").textContent = (wlo != null && whi != null) ? `${fmtPx(wlo)} – ${fmtPx(whi)}` : "—";
+    const wlo = finiteOrNull(data.fiftyTwoWeekLow), whi = finiteOrNull(data.fiftyTwoWeekHigh);
+    $("quote-52w").textContent = (wlo !== null && whi !== null) ? `${fmtPx(wlo)} – ${fmtPx(whi)}` : "—";
     const asof = data.regularMarketTime ? new Date(Number(data.regularMarketTime) * 1000).toISOString() : "";
     meta.textContent = `${data.shortName || y} · ${y} · ${data.currency || ""} · ${data.marketState || ""} · as of ${asof || "—"} · homework snapshot`;
   } catch (error) {
+    if (requestId !== quoteRequestId || state.selected !== symbolAtStart) return;
     clearQuoteFields("—");
     chEl.textContent = "unavailable";
     meta.textContent = "Snapshot failed. " + (error.message || "");
   }
 }
 $("refresh-quote").addEventListener("click", loadQuote);
-// Periodic homework refresh only (5 min) — not a streaming quote loop.
 setInterval(() => { if (document.visibilityState === "visible") loadQuote(); }, 300000);
