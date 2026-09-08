@@ -1,8 +1,10 @@
 # MarketDesk
 
-Personal TradingView-style dashboard: charts (TradingView Advanced Chart widget), watchlist, manual trade journal, optional last-print quotes from public sources.
+Repo: https://github.com/philosopherkk/marketdesk
 
-## Run
+Files: `index.html`, `styles.css`, `app.js`.
+
+## Run locally
 
 ```bash
 python3 -m http.server 8000
@@ -10,28 +12,18 @@ python3 -m http.server 8000
 
 Open http://localhost:8000
 
-Internet is required for the chart widget and quote panel.
+## Publish (GitHub Pages)
 
-## What is real vs what is not
+Repo is private. Free Pages for a user account needs a public repo or a paid plan.
 
-- Charts and drawing tools come from TradingView's **free embed**. That is display-only. TradingView does not expose widget internals as a market-data API. A paid TradingView account does **not** unlock paid exchange data inside website widgets.
-- The quote strip is a **separate** fetch. Stocks/ETFs/futures map to Yahoo-style tickers via `finance-query.com` (community wrapper over public Yahoo endpoints). Crypto uses CoinGecko's public simple-price API. Treat equity prints as delayed / last available, not exchange-entitled real-time.
-- Journal P&L is **manual**. It does not read the widget. Target price is never used as an exit.
-- Persistence is `localStorage` key `marketdesk:v1`. Export JSON regularly. Import is validated before overwrite.
+1. https://github.com/philosopherkk/marketdesk/settings — make Public if you want the free URL
+2. Settings → Pages → Deploy from a branch → main / root
+3. URL: https://philosopherkk.github.io/marketdesk/
 
-## Symbol format
+localStorage is per-origin. Export before switching hosts.
 
-Use `EXCHANGE:TICKER` as TradingView expects: `NASDAQ:AAPL`, `HKEX:700`, `CME_MINI:ES1!`, `COINBASE:BTCUSD`.
+## Data
 
-Continuous futures ending in `!` are for **charts only**. Journal rows require a dated contract symbol.
+Yahoo-style snapshot via finance-query.com. TradingView embed for charts. Manual journal.
 
-## Limitations (do not ignore)
-
-- Not every HK or futures symbol is available in the free widget.
-- No brokerage, no orders, no scraped iframe prices, no invented prints.
-- No mixed-currency journal totals.
-- Browser storage can fail or fill; use Export.
-
-## Cursor / next phase
-
-See `CURSOR_HANDOFF.md`.
+See CURSOR_HANDOFF.md.
