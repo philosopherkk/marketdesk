@@ -276,32 +276,43 @@ async function computeMmBreadth() {
       .filter(Boolean)
       .slice(0, 80);
     const charts = await mapPool(sample, 6, sym => fetchChart(sym));
-    let up25q = 0, down25q = 0, up25m = 0, down25m = 0, up50m = 0, down50m = 0, bull3413 = 0, bear3413 = 0, mmaPlus = 0, mmaMinus = 0, scored = 0;
+    let up25q = 0, down25q = 0, up25m = 0, down25m = 0, up50m = 0, down50m = 0, bull3413 = 0, bear3413 = 0, mmaPlus = 0, mmaMinus = 0;
+    let eligibleQ = 0, eligibleM = 0, eligible34 = 0, eligibleMma = 0, chartSample = 0;
     for (const chart of charts) {
-      if (!chart || !chart.candles || chart.candles.length < 60) continue;
+      if (!chart || !chart.candles) continue;
       const closes = closesFromChart(chart);
-      if (closes.length < 60) continue;
-      scored++;
+      if (closes.length < 34) continue;
+      chartSample++;
       const last = closes[closes.length - 1];
-      const ago65 = closes[Math.max(0, closes.length - 65)];
-      const ago21 = closes[Math.max(0, closes.length - 21)];
-      const ago34 = closes[Math.max(0, closes.length - 34)];
-      const q = pctChange(ago65, last);
-      const m = pctChange(ago21, last);
-      const d34 = pctChange(ago34, last);
-      if (q != null && q >= 25) up25q++;
-      if (q != null && q <= -25) down25q++;
-      if (m != null && m >= 25) up25m++;
-      if (m != null && m <= -25) down25m++;
-      if (m != null && m >= 50) up50m++;
-      if (m != null && m <= -50) down50m++;
-      if (d34 != null && d34 >= 13) bull3413++;
-      if (d34 != null && d34 <= -13) bear3413++;
-      const ma50 = sma(closes, 50);
-      const ma200 = sma(closes, Math.min(200, closes.length));
-      if (ma50 != null && ma200 != null) {
-        if (last > ma50 && ma50 > ma200) mmaPlus++;
-        if (last < ma50 && ma50 < ma200) mmaMinus++;
+      if (closes.length >= 65) {
+        eligibleQ++;
+        const q = pctChange(closes[closes.length - 65], last);
+        if (q != null && q >= 25) up25q++;
+        if (q != null && q <= -25) down25q++;
+      }
+      if (closes.length >= 21) {
+        eligibleM++;
+        const m = pctChange(closes[closes.length - 21], last);
+        if (m != null && m >= 25) up25m++;
+        if (m != null && m <= -25) down25m++;
+        if (m != null && m >= 50) up50m++;
+        if (m != null && m <= -50) down50m++;
+      }
+      if (closes.length >= 34) {
+        eligible34++;
+        const d34 = pctChange(closes[closes.length - 34], last);
+        if (d34 != null && d34 >= 13) bull3413++;
+        if (d34 != null && d34 <= -13) bear3413++;
+      }
+      // Require full 200-bar history for SMA200 — no Math.min shortcut.
+      if (closes.length >= 200) {
+        const ma50 = sma(closes, 50);
+        const ma200 = sma(closes, 200);
+        if (ma50 != null && ma200 != null) {
+          eligibleMma++;
+          if (last > ma50 && ma50 > ma200) mmaPlus++;
+          if (last < ma50 && ma50 < ma200) mmaMinus++;
+        }
       }
     }
 
@@ -312,7 +323,7 @@ async function computeMmBreadth() {
     if (!Array.isArray(history)) history = [];
     const day = localDate();
     history = history.filter(h => h && h.date !== day);
-    history.push({ date: day, up4, down4 });
+    history.push({ date: day, up4, down4, universe: equities.length });
     history = history.slice(-10);
     try { localStorage.setItem(historyKey, JSON.stringify(history)); } catch { /* ignore */ }
     const sumUp = history.reduce((a, h) => a + (h.up4 || 0), 0);
@@ -321,14 +332,15 @@ async function computeMmBreadth() {
 
     const metrics = {
       universeSize: equities.length,
-      chartSample: scored,
+      chartSample,
+      eligibleQ, eligibleM, eligible34, eligibleMma,
       up4, down4,
       ratio,
       historyDays: history.length,
       up25q, down25q, up25m, down25m, up50m, down50m,
       bull3413, bear3413,
-      mmaPlusPct: scored ? (mmaPlus / scored) * 100 : null,
-      mmaMinusPct: scored ? (mmaMinus / scored) * 100 : null
+      mmaPlusPct: eligibleMma ? (mmaPlus / eligibleMma) * 100 : null,
+      mmaMinusPct: eligibleMma ? (mmaMinus / eligibleMma) * 100 : null
     };
     const payload = { asOf: new Date().toISOString(), metrics, day };
     saveBreadthCache(payload);

@@ -4,7 +4,8 @@ Repo: https://github.com/philosopherkk/marketdesk
 
 **Version:** see `VERSION` (also shown in the app header/footer). Bump version + HKT update date on every publish.
 
-Files: `index.html`, `styles.css`, `core.js`, `ui.js`, `chart-quotes.js`, `journal.js`, `market-panels.js`, `data/tape-daily.json`, `VERSION`.
+Files: `index.html`, `styles.css`, `core.js`, `ui.js`, `chart-quotes.js`, `native-chart.js`, `ma.js`, `journal.js`, `market-panels.js`, `data/tape-daily.json`, `vendor/lightweight-charts-5.0.8.standalone.production.js`, `VERSION`.
+
 
 
 ## Run locally

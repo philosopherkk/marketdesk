@@ -100,7 +100,14 @@ footer .version-line { margin-bottom: 6px; color: var(--text); font-weight: 600;
 .movers-empty { padding: 12px; margin: 0; }
 .mm-table { white-space: normal; }
 .mm-table td:first-child { font-weight: 600; color: var(--text); min-width: 180px; }
-.chart-studies-note { font-size: 12px; color: var(--muted); padding-top: 0; border-top: none; }
+.overlay-editor { gap: 8px; }
+.overlay-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.overlay-row input[type="number"], .overlay-row select { width: auto; padding: 6px 8px; }
+.trade-panel.collapsed #trade-form { display: none; }
+.trade-panel.collapsed .panel-head h2::after { content: " (hidden)"; font-weight: 400; color: var(--muted); font-size: 12px; }
+.native-chart-shell { display: grid; gap: 8px; }
+.native-legend, .native-meta { padding: 0 14px 10px; font-size: 12px; overflow-wrap: anywhere; }
+.chart-panel .quote-bar { border-top: 1px solid var(--border); }
 .mm-monitor-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: auto; }
 .mm-monitor { width: 100%; border-collapse: collapse; font-size: 12px; white-space: normal; }
 .mm-monitor th { background: var(--input); color: var(--muted); font-weight: 600; text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }

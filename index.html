@@ -24,6 +24,7 @@
         <button type="button" data-font-scale="large" aria-label="Large text">A+</button>
       </div>
       <button type="button" id="theme-toggle">Daylight</button>
+      <button type="button" id="toggle-trade-form">Hide trade form</button>
       <small id="storage-label">Saved on this device/browser only · marketdesk:v1</small>
       <button id="export" type="button">Export backup</button>
       <button id="import-btn" type="button">Import backup</button>
@@ -40,7 +41,7 @@
       <div class="watchlist" id="watchlist"></div>
     </aside>
     <main>
-      <section class="panel">
+      <section class="panel chart-panel">
         <div class="panel-head">
           <div><h2 id="current-symbol"></h2><small>Market chart</small></div>
           <button id="reload-chart" type="button">Reload chart</button>
@@ -52,21 +53,40 @@
           <button id="save-symbol" type="button">Save ticker</button>
         </form>
         <div class="chart-toolbar">
+          <label class="check">Chart mode
+            <select id="chart-provider">
+              <option value="tradingview">TradingView embed</option>
+              <option value="native">Native (exact MAs)</option>
+            </select>
+          </label>
           <label class="check">Interval
             <select id="interval">
               <option value="5">5m</option><option value="15">15m</option><option value="60">1h</option>
               <option value="240">4h</option><option value="D" selected>1D</option><option value="W">1W</option><option value="M">1M</option>
             </select>
           </label>
+          <label class="check">MA preset
+            <select id="ma-preset">
+              <option value="existing">Existing MarketDesk</option>
+              <option value="momentum">Momentum swing</option>
+              <option value="trend">Trend structure</option>
+              <option value="fast">Fast momentum</option>
+              <option value="weekly">Weekly review</option>
+            </select>
+          </label>
           <div class="row" id="indicator-controls"></div>
-          <div class="row" id="ma-overlay-controls"></div>
           <button type="button" id="refresh-quote">Refresh snapshot</button>
         </div>
-        <p class="chart-studies-note padding">Free TV widget studies — no TradingView subscription. Default overlays: EMA 10/20/50 + SMA 150/200 (toggle above). Theme follows Daylight/Dark.</p>
+        <div class="padding stack">
+          <p class="muted chart-studies-note">Overlays: enable · EMA/SMA · period · color · width · solid/dashed. Changes apply only after <strong>Apply overlays</strong> (avoids recreating the TV widget on every toggle). Free TV widget studies are best-effort for custom lengths — use <strong>Native</strong> for verified periods. No TradingView subscription / no iframe scrape.</p>
+          <div id="ma-overlay-controls"></div>
+          <div class="muted" id="tv-ma-note"></div>
+        </div>
+        <div id="chart"></div>
         <div class="quote-bar" id="quote-bar">
           <div class="quote-heading">
             <strong>Day snapshot</strong>
-            <small class="muted">Yahoo-style homework print · not a live tick feed</small>
+            <small class="muted">Yahoo-style homework print · below chart · not a live tick feed</small>
           </div>
           <div class="quote-ohlc">
             <div><small>Open</small><strong id="quote-open">—</strong></div>
@@ -82,7 +102,6 @@
             <div class="quote-meta-cell"><small>Market state / as of</small><div class="muted" id="quote-meta">Day snapshot via finance-query.com</div></div>
           </div>
         </div>
-        <div id="chart"></div>
       </section>
       <section class="panel market-update" id="daily-update">
         <div class="panel-head">
@@ -93,7 +112,7 @@
           <button type="button" id="refresh-movers">Refresh daily update</button>
         </div>
         <div class="padding stack">
-          <p class="muted movers-note">Preferred source: <strong>Tape daily desk</strong> (repo <code>data/tape-daily.json</code> or local override). If Tape is missing, falls back to finance-query day-gainers/losers. Click a ticker for US chart (bare tickers default to US — not HK).</p>
+          <p class="muted movers-note">Preferred source: <strong>Tape daily desk</strong> (<code>data/tape-daily.json</code>). Fallback: finance-query screeners.</p>
           <div class="row"><span class="badge" id="movers-source-badge">Source: …</span></div>
           <div class="muted" id="movers-meta">Daily update pending…</div>
           <div class="movers-grid">
@@ -131,11 +150,9 @@
         </div>
         <div class="padding stack">
           <p>
-            <strong>Stockbee Market Monitor (MM)</strong> by Pradeep Bonde — classic Type / Indicator / Value / Comments layout with color coding.
-            Credit:
-            <a href="https://stockbee.blogspot.com/p/mm.html" target="_blank" rel="noopener noreferrer">Stockbee MM</a>.
-            Auto-filled numbers are <strong>reconstructed from public EOD/snapshot data — not official Stockbee membership numbers.</strong>
-            Missing rows show “—” (never invented).
+            <strong>Stockbee Market Monitor (MM)</strong> layout with color coding.
+            Credit: <a href="https://stockbee.blogspot.com/p/mm.html" target="_blank" rel="noopener noreferrer">Stockbee MM</a>.
+            <strong>Reconstructed from public data — not official Stockbee membership numbers.</strong>
           </p>
           <div class="muted" id="mm-meta">Pending…</div>
           <div id="mm-metrics"></div>
@@ -149,7 +166,7 @@
           </div>
           <label class="check"><input type="checkbox" id="current-only"> Current ticker only</label>
         </div>
-        <p class="journal-note padding">Saved on this device/browser only under <code>marketdesk:v1</code> (per-origin — localhost ≠ github.io). Use Export / Import backup to move trades. Target is never an exit.</p>
+        <p class="journal-note padding">Saved on this device/browser only under <code>marketdesk:v1</code> (per-origin — localhost ≠ github.io). Target is never an exit. Journal/P&amp;L logic unchanged in 1.3.0.</p>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Date</th><th>Exit date</th><th>Symbol</th><th>Side</th><th>Qty × mult</th><th>Entry / saved</th><th>Stop</th><th>Target</th><th>Actual exit</th><th>Net P&L</th><th>Actions</th></tr></thead>
@@ -195,12 +212,15 @@
   </div>
   <footer>
     <div class="version-line" id="footer-version">MarketDesk <span data-app-version></span> · updated <span data-app-updated></span></div>
-    Personal analysis only. TradingView charts. Day snapshots via finance-query.com. Tape desk preferred for daily US update. Reconstructed MM-style breadth is not official Stockbee. Saved on this device/browser only. Every publish bumps version + update date (HKT).
+    Personal analysis only. TradingView embed or Native Lightweight Charts™. Day snapshots via finance-query.com. Stockbee MM reconstructed / not official. Saved on this device/browser only.
   </footer>
   <div id="toast" role="status" hidden></div>
+  <script src="vendor/lightweight-charts-5.0.8.standalone.production.js"></script>
   <script src="core.js"></script>
+  <script src="ma.js"></script>
   <script src="ui.js"></script>
   <script src="chart-quotes.js"></script>
+  <script src="native-chart.js"></script>
   <script src="journal.js"></script>
   <script src="market-panels.js"></script>
 </body>
