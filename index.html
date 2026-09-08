@@ -28,31 +28,27 @@
   <div class="workspace">
     <aside class="panel">
       <div class="panel-head"><h2>Watchlist</h2><span class="muted" id="watch-count"></span></div>
-      <div class="padding"><input id="watch-search" aria-label="Filter saved tickers" placeholder="Filter saved tickers…"></div>
-      <div class="market-tabs" id="market-tabs" aria-label="Filter watchlist by market"></div>
+      <div class="padding"><input id="watch-search" placeholder="Filter saved tickers…"></div>
+      <div class="market-tabs" id="market-tabs"></div>
       <div class="watchlist" id="watchlist"></div>
-      <div class="notice">Saved symbols only. Not a live quote table. Last print for the open chart is in the strip above the widget.</div>
     </aside>
     <main>
       <section class="panel">
         <div class="panel-head">
-          <div>
-            <h2 id="current-symbol"></h2>
-            <small>Market chart · exchange availability varies</small>
-          </div>
+          <div><h2 id="current-symbol"></h2><small>Market chart</small></div>
           <button id="reload-chart" type="button">Reload chart</button>
         </div>
         <form class="symbol-form" id="symbol-form">
-          <input id="symbol-input" list="symbol-options" aria-label="Exchange-qualified ticker" placeholder="NASDAQ:AAPL or HKEX:700" autocomplete="off" maxlength="80" required>
+          <input id="symbol-input" list="symbol-options" placeholder="NASDAQ:AAPL or HKEX:700" maxlength="80" required>
           <datalist id="symbol-options"></datalist>
           <button class="primary" type="submit">Open chart</button>
-          <button id="save-symbol" type="button">☆ Save ticker</button>
+          <button id="save-symbol" type="button">Save ticker</button>
         </form>
         <div class="chart-toolbar">
           <label class="check">Interval
             <select id="interval">
               <option value="5">5m</option><option value="15">15m</option><option value="60">1h</option>
-              <option value="240">4h</option><option value="D">1D</option><option value="W">1W</option><option value="M">1M</option>
+              <option value="240">4h</option><option value="D" selected>1D</option><option value="W">1W</option><option value="M">1M</option>
             </select>
           </label>
           <div class="row" id="indicator-controls"></div>
@@ -66,10 +62,9 @@
           <div><small>Day range</small><strong id="quote-range">—</strong></div>
           <div><small>Volume</small><strong id="quote-vol">—</strong></div>
           <div><small>52-week</small><strong id="quote-52w">—</strong></div>
-          <div><small>State / source</small><div class="muted" id="quote-meta">Yahoo-style snapshot, not a live tape</div></div>
+          <div><small>State / source</small><div class="muted" id="quote-meta">Yahoo-style snapshot</div></div>
         </div>
         <div id="chart"></div>
-        <div class="notice">Ticker / interval / indicator changes rebuild the widget and may reset drawings. Quotes are a separate public fetch, not TradingView iframe data.</div>
       </section>
       <section class="panel journal">
         <div class="panel-head">
@@ -78,49 +73,39 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>Date</th><th>Exit date</th><th>Symbol</th><th>Side</th>
-                <th>Quantity × multiplier</th><th>Entry</th><th>Target</th><th>Actual exit</th><th>Net P&L</th><th>Actions</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Date</th><th>Exit date</th><th>Symbol</th><th>Side</th><th>Qty × mult</th><th>Entry</th><th>Target</th><th>Actual exit</th><th>Net P&L</th><th>Actions</th></tr></thead>
             <tbody id="journal-body"></tbody>
           </table>
         </div>
-        <div id="journal-empty" class="empty">No trades yet. Add your first entry on the right.</div>
+        <div id="journal-empty" class="empty">No trades yet.</div>
       </section>
     </main>
     <aside class="panel trade-panel">
-      <div class="panel-head"><h2 id="trade-title">Add trade</h2><span class="badge">MANUAL JOURNAL</span></div>
+      <div class="panel-head"><h2 id="trade-title">Add trade</h2></div>
       <form id="trade-form" class="padding stack">
         <label class="field"><span>Trade symbol</span><input id="trade-symbol" maxlength="80" required></label>
         <div class="two-cols">
-          <label class="field"><span>Direction</span>
-            <select id="side"><option value="long">Long / buy</option><option value="short">Short / sell</option></select>
-          </label>
+          <label class="field"><span>Direction</span><select id="side"><option value="long">Long</option><option value="short">Short</option></select></label>
           <label class="field"><span>Entry date</span><input id="trade-date" type="date" required></label>
         </div>
         <div class="two-cols">
           <label class="field"><span>Entry price</span><input id="entry" type="number" step="any" required></label>
-          <label class="field"><span>Target price — not an exit</span><input id="target" type="number" step="any" placeholder="Optional plan only"></label>
+          <label class="field"><span>Target — not an exit</span><input id="target" type="number" step="any"></label>
         </div>
         <div class="two-cols">
-          <label class="field"><span>Actual exit — optional</span><input id="exit" type="number" step="any" placeholder="Blank = open"></label>
-          <label class="field"><span>Exit date — optional</span><input id="exit-date" type="date"></label>
+          <label class="field"><span>Actual exit</span><input id="exit" type="number" step="any"></label>
+          <label class="field"><span>Exit date</span><input id="exit-date" type="date"></label>
         </div>
         <div class="two-cols">
-          <label class="field"><span>Shares / coins / contracts</span><input id="quantity" type="number" step="any" min="0" value="1" required></label>
-          <label class="field"><span>Contract multiplier</span><input id="multiplier" type="number" step="any" min="0" value="1" required></label>
+          <label class="field"><span>Quantity</span><input id="quantity" type="number" step="any" min="0" value="1" required></label>
+          <label class="field"><span>Multiplier</span><input id="multiplier" type="number" step="any" min="0" value="1" required></label>
         </div>
         <div class="two-cols">
-          <label class="field"><span>Total fees</span><input id="fees" type="number" step="any" min="0" value="0" required></label>
-          <label class="field"><span>P&L currency / unit</span><input id="currency" value="USD" maxlength="10" required></label>
+          <label class="field"><span>Fees</span><input id="fees" type="number" step="any" min="0" value="0" required></label>
+          <label class="field"><span>Currency</span><input id="currency" value="USD" maxlength="10" required></label>
         </div>
-        <label class="field"><span>Notes</span><textarea id="notes" maxlength="2000" placeholder="Setup, reasoning, lessons…"></textarea></label>
-        <div class="preview">
-          <small>Estimated closed-trade net P&L</small>
-          <strong id="pnl-preview">Open trade</strong>
-        </div>
+        <label class="field"><span>Notes</span><textarea id="notes" maxlength="2000"></textarea></label>
+        <div class="preview"><small>Closed-trade net P&L</small><strong id="pnl-preview">Open trade</strong></div>
         <div class="row">
           <button type="submit" class="primary" id="submit-trade">Save trade</button>
           <button type="button" id="reset-trade">Clear / new</button>
@@ -128,8 +113,11 @@
       </form>
     </aside>
   </div>
-  <footer>Personal analysis only. Charts from TradingView. Yahoo-style snapshot via finance-query.com.</footer>
+  <footer>Personal analysis only. TradingView charts. Yahoo-style snapshot via finance-query.com.</footer>
   <div id="toast" role="status" hidden></div>
-  <script src="app.js"></script>
+  <script src="core.js"></script>
+  <script src="ui.js"></script>
+  <script src="chart-quotes.js"></script>
+  <script src="journal.js"></script>
 </body>
 </html>
