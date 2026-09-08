@@ -2,7 +2,7 @@
 const STORAGE_KEY = "marketdesk:v1";
 const BREADTH_CACHE_KEY = "marketdesk:breadth-cache:v1";
 /** Bump on every publish. Shown in header/footer. Keep in sync with VERSION file. */
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "1.2.0";
 const APP_UPDATED = "2026-09-08 HKT";
 const $ = id => document.getElementById(id);
 const CATALOG = [
@@ -25,13 +25,13 @@ const CATALOG = [
   { symbol: "COINBASE:ETHUSD", name: "Ethereum / USD", market: "Crypto" }
 ];
 const INDICATORS = {
-  RSI: "RSI@tv-basicstudies", MACD: "MACD@tv-basicstudies",
-  SMA: "MASimple@tv-basicstudies", EMA: "MAExp@tv-basicstudies", BB: "BB@tv-basicstudies"
+  RSI: "RSI@tv-basicstudies", MACD: "MACD@tv-basicstudies", BB: "BB@tv-basicstudies"
 };
 const INTERVALS = ["5", "15", "60", "240", "D", "W", "M"];
 const MARKETS = ["All", "US", "HK", "ETF", "Futures", "Crypto", "Other"];
 const FONT_SCALES = ["small", "medium", "large"];
 const THEMES = ["dark", "light", "system"];
+const defaultMaOverlays = () => ({ emas: true, sma150200: true });
 const YAHOO_EX_TO_TV = {
   NMS: "NASDAQ", NGM: "NASDAQ", NCM: "NASDAQ", NAS: "NASDAQ", NIQ: "NASDAQ",
   NYQ: "NYSE", NYE: "NYSE", NYS: "NYSE",
@@ -46,6 +46,7 @@ const defaults = () => ({
   selected: "NASDAQ:AAPL",
   interval: "D",
   indicators: ["RSI", "MACD"],
+  maOverlays: defaultMaOverlays(),
   watchlist: CATALOG.map(item => item.symbol),
   trades: [],
   fontScale: "medium",
@@ -74,6 +75,18 @@ function migrateState(data) {
   if (!FONT_SCALES.includes(next.fontScale)) next.fontScale = "medium";
   if (!THEMES.includes(next.theme)) next.theme = "dark";
   if (next.tapeOverride != null && typeof next.tapeOverride !== "object") next.tapeOverride = null;
+  // Migrate legacy SMA/EMA indicator toggles → named MA overlay sets.
+  const rawIndicators = Array.isArray(next.indicators) ? next.indicators : [];
+  const hadEma = rawIndicators.includes("EMA");
+  const hadSma = rawIndicators.includes("SMA");
+  next.indicators = rawIndicators.filter(key => Object.hasOwn(INDICATORS, key));
+  if (!next.indicators.length) next.indicators = ["RSI", "MACD"];
+  const overlays = { ...defaultMaOverlays(), ...(next.maOverlays || {}) };
+  if (typeof overlays.emas !== "boolean") overlays.emas = true;
+  if (typeof overlays.sma150200 !== "boolean") overlays.sma150200 = true;
+  if (hadEma) overlays.emas = true;
+  if (hadSma) overlays.sma150200 = true;
+  next.maOverlays = overlays;
   next.watchlist = [...new Set((next.watchlist || []).filter(validSymbol))];
   next.trades = (next.trades || []).map(t => {
     const trade = { target: null, exitDate: null, stopLoss: null, ...t };
@@ -84,6 +97,7 @@ function migrateState(data) {
   });
   if (!validSymbol(next.selected) || !INTERVALS.includes(next.interval) ||
       !Array.isArray(next.indicators) || !next.indicators.every(key => Object.hasOwn(INDICATORS, key)) ||
+      !next.maOverlays || typeof next.maOverlays.emas !== "boolean" || typeof next.maOverlays.sma150200 !== "boolean" ||
       !Array.isArray(next.watchlist) || !next.watchlist.every(validSymbol) ||
       !Array.isArray(next.trades) || !next.trades.every(validTrade)) {
     throw new Error("Invalid saved data");

@@ -100,6 +100,27 @@ footer .version-line { margin-bottom: 6px; color: var(--text); font-weight: 600;
 .movers-empty { padding: 12px; margin: 0; }
 .mm-table { white-space: normal; }
 .mm-table td:first-child { font-weight: 600; color: var(--text); min-width: 180px; }
+.chart-studies-note { font-size: 12px; color: var(--muted); padding-top: 0; border-top: none; }
+.mm-monitor-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: auto; }
+.mm-monitor { width: 100%; border-collapse: collapse; font-size: 12px; white-space: normal; }
+.mm-monitor th { background: var(--input); color: var(--muted); font-weight: 600; text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.mm-monitor td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.mm-monitor .mm-value { font-weight: 800; font-size: 14px; white-space: nowrap; }
+.mm-tone-bull-extreme { background: rgba(16, 185, 129, 0.28); color: inherit; }
+.mm-tone-bull { background: rgba(16, 185, 129, 0.16); }
+.mm-tone-bull-soft { background: rgba(16, 185, 129, 0.08); }
+.mm-tone-bear-extreme { background: rgba(239, 68, 68, 0.28); }
+.mm-tone-bear { background: rgba(239, 68, 68, 0.16); }
+.mm-tone-bear-soft { background: rgba(239, 68, 68, 0.08); }
+.mm-tone-neutral { background: rgba(245, 158, 11, 0.08); }
+.mm-tone-na { background: transparent; color: var(--muted); }
+[data-theme="light"] .mm-tone-bull-extreme { background: #bbf7d0; }
+[data-theme="light"] .mm-tone-bull { background: #dcfce7; }
+[data-theme="light"] .mm-tone-bull-soft { background: #f0fdf4; }
+[data-theme="light"] .mm-tone-bear-extreme { background: #fecaca; }
+[data-theme="light"] .mm-tone-bear { background: #fee2e2; }
+[data-theme="light"] .mm-tone-bear-soft { background: #fef2f2; }
+[data-theme="light"] .mm-tone-neutral { background: #fef3c7; }
 .notice-inline { font-size: 12px; color: var(--warn-fg); background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 8px; padding: 10px 12px; }
 .proxy-box { background: var(--input); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
 .table-wrap { overflow-x: auto; }

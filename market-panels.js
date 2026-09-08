@@ -348,22 +348,6 @@ async function computeMmBreadth() {
 
 function renderMmMetrics(m, asOf, fromCache = false) {
   const host = $("mm-metrics");
-  const ratioTxt = m.ratio == null ? "—" : (m.ratio === Infinity ? "∞" : m.ratio.toFixed(2));
-  const rows = [
-    ["4% up (day)", m.up4],
-    ["4% down (day)", m.down4],
-    [`10-day cum. breadth ratio (${m.historyDays || 0} sess.)`, ratioTxt],
-    ["25%+ quarter (sample)", m.up25q],
-    ["25%− quarter (sample)", m.down25q],
-    ["25%+ month (sample)", m.up25m],
-    ["25%− month (sample)", m.down25m],
-    ["50%+ month (sample)", m.up50m],
-    ["50%− month (sample)", m.down50m],
-    ["34/13 bull (sample)", m.bull3413],
-    ["34/13 bear (sample)", m.bear3413],
-    ["MMA+ % (sample)", m.mmaPlusPct == null ? "—" : m.mmaPlusPct.toFixed(1) + "%"],
-    ["MMA− % (sample)", m.mmaMinusPct == null ? "—" : m.mmaMinusPct.toFixed(1) + "%"]
-  ];
   host.replaceChildren();
   if (fromCache) {
     const note = document.createElement("p");
@@ -371,17 +355,99 @@ function renderMmMetrics(m, asOf, fromCache = false) {
     note.textContent = "Cached reading · as of " + asOf;
     host.appendChild(note);
   }
+
+  const fmtInt = v => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+  const fmtPct = v => (v == null || !Number.isFinite(Number(v)) ? null : Number(v).toFixed(1) + "%");
+  const ratioVal = m.ratio == null ? null : (m.ratio === Infinity ? "∞" : Number(m.ratio).toFixed(2));
+  const sampleNote = m.chartSample != null ? `chart sample n=${m.chartSample}` : "chart sample incomplete";
+
+  function toneUp4(n) {
+    if (n == null) return { tone: "na", comment: "Unavailable" };
+    if (n >= 500) return { tone: "bull-extreme", comment: "Extreme buying pressure" };
+    if (n >= 300) return { tone: "bull", comment: "High buying pressure" };
+    if (n >= 100) return { tone: "bull-soft", comment: "Elevated upside breadth" };
+    return { tone: "neutral", comment: "Normal / quiet upside" };
+  }
+  function toneDown4(n) {
+    if (n == null) return { tone: "na", comment: "Unavailable" };
+    if (n >= 500) return { tone: "bear-extreme", comment: "Extreme selling" };
+    if (n >= 300) return { tone: "bear", comment: "High selling pressure" };
+    if (n >= 100) return { tone: "bear-soft", comment: "Elevated downside breadth" };
+    return { tone: "neutral", comment: "Normal / quiet downside" };
+  }
+  function toneRatio(r, days) {
+    if (r == null) return { tone: "na", comment: days < 2 ? "Need more sessions for ratio" : "Unavailable" };
+    const num = r === "∞" ? Infinity : Number(r);
+    if (num >= 2) return { tone: "bull-extreme", comment: "Thrust ≥2 (bullish breadth thrust zone)" };
+    if (num <= 0.5) return { tone: "bear-extreme", comment: "Thrust ≤0.5 (bearish breadth thrust zone)" };
+    if (num >= 1.2) return { tone: "bull-soft", comment: "Mildly positive breadth" };
+    if (num <= 0.8) return { tone: "bear-soft", comment: "Mildly negative breadth" };
+    return { tone: "neutral", comment: "Mid-range ratio" };
+  }
+  function tonePrimaryUp(n) {
+    if (n == null) return { tone: "na", comment: sampleNote };
+    if (n >= 40) return { tone: "bull", comment: "Many names +25% / quarter (sample)" };
+    if (n <= 5) return { tone: "bear-soft", comment: "Few +25% / quarter (sample)" };
+    return { tone: "neutral", comment: sampleNote };
+  }
+  function tonePrimaryDown(n) {
+    if (n == null) return { tone: "na", comment: sampleNote };
+    if (n >= 40) return { tone: "bear", comment: "Many names −25% / quarter (sample)" };
+    if (n <= 5) return { tone: "bull-soft", comment: "Few −25% / quarter (sample)" };
+    return { tone: "neutral", comment: sampleNote };
+  }
+  function toneMma(pct, side) {
+    if (pct == null) return { tone: "na", comment: sampleNote };
+    if (side === "plus") {
+      if (pct >= 55) return { tone: "bull", comment: "Majority confirmed uptrend (sample)" };
+      if (pct <= 25) return { tone: "bear-soft", comment: "Weak uptrend share (sample)" };
+      return { tone: "neutral", comment: sampleNote };
+    }
+    if (pct >= 55) return { tone: "bear", comment: "Majority confirmed downtrend (sample)" };
+    if (pct <= 25) return { tone: "bull-soft", comment: "Weak downtrend share (sample)" };
+    return { tone: "neutral", comment: sampleNote };
+  }
+
+  const rows = [
+    { type: "Daily", indicator: "# of stocks up >4% on high volume", value: fmtInt(m.up4), ...toneUp4(fmtInt(m.up4)) },
+    { type: "Daily", indicator: "# of stocks down >4% on high volume", value: fmtInt(m.down4), ...toneDown4(fmtInt(m.down4)) },
+    { type: "Primary", indicator: "# of stocks up >25% in a quarter", value: fmtInt(m.up25q), ...tonePrimaryUp(fmtInt(m.up25q)) },
+    { type: "Primary", indicator: "# of stocks down >25% in a quarter", value: fmtInt(m.down25q), ...tonePrimaryDown(fmtInt(m.down25q)) },
+    { type: "Secondary", indicator: "# of stocks up >50% in a month", value: fmtInt(m.up50m), tone: fmtInt(m.up50m) == null ? "na" : (fmtInt(m.up50m) >= 10 ? "bull" : "neutral"), comment: sampleNote },
+    { type: "Secondary", indicator: "# of stocks down >50% in a month", value: fmtInt(m.down50m), tone: fmtInt(m.down50m) == null ? "na" : (fmtInt(m.down50m) >= 10 ? "bear" : "neutral"), comment: sampleNote },
+    { type: "Secondary", indicator: "# of stocks up >25% in a month", value: fmtInt(m.up25m), tone: fmtInt(m.up25m) == null ? "na" : (fmtInt(m.up25m) >= 20 ? "bull-soft" : "neutral"), comment: sampleNote },
+    { type: "Secondary", indicator: "# of stocks down >25% in a month", value: fmtInt(m.down25m), tone: fmtInt(m.down25m) == null ? "na" : (fmtInt(m.down25m) >= 20 ? "bear-soft" : "neutral"), comment: sampleNote },
+    { type: "Primary fast", indicator: "# of stocks up >13% in 34 days", value: fmtInt(m.bull3413), tone: fmtInt(m.bull3413) == null ? "na" : (fmtInt(m.bull3413) >= 30 ? "bull" : "neutral"), comment: sampleNote },
+    { type: "Primary fast", indicator: "# of stocks down >13% in 34 days", value: fmtInt(m.bear3413), tone: fmtInt(m.bear3413) == null ? "na" : (fmtInt(m.bear3413) >= 30 ? "bear" : "neutral"), comment: sampleNote },
+    { type: "MMA+", indicator: "% of stocks in confirmed uptrend", value: fmtPct(m.mmaPlusPct), ...toneMma(m.mmaPlusPct, "plus") },
+    { type: "MMA−", indicator: "% of stocks in confirmed downtrend", value: fmtPct(m.mmaMinusPct), ...toneMma(m.mmaMinusPct, "minus") },
+    {
+      type: "10-day ratio",
+      indicator: `# stocks up>4% last 10d / # down>4% last 10d (${m.historyDays || 0} sess.)`,
+      value: ratioVal,
+      ...toneRatio(ratioVal, m.historyDays || 0)
+    }
+  ];
+
+  const wrap = document.createElement("div");
+  wrap.className = "table-wrap mm-monitor-wrap";
   const table = document.createElement("table");
-  table.className = "mm-table";
-  table.innerHTML = "<thead><tr><th>MM-style column</th><th>Reconstructed value</th></tr></thead>";
+  table.className = "mm-monitor";
+  table.innerHTML = "<thead><tr><th>Type</th><th>Indicator</th><th>Value</th><th>Comments</th></tr></thead>";
   const tbody = document.createElement("tbody");
-  for (const [label, value] of rows) {
+  for (const row of rows) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${label}</td><td><strong>${value}</strong></td>`;
+    tr.className = "mm-tone-" + (row.tone || "neutral");
+    const display = row.value == null || row.value === "" ? "—" : row.value;
+    const comment = row.value == null || row.value === ""
+      ? (row.comment || "— · not computed")
+      : (row.comment || "");
+    tr.innerHTML = `<td>${row.type}</td><td>${row.indicator}</td><td class="mm-value">${display}</td><td>${comment}</td>`;
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
-  host.appendChild(table);
+  wrap.appendChild(table);
+  host.appendChild(wrap);
 }
 
 async function loadMinerviniPanel() {

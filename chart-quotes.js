@@ -1,3 +1,20 @@
+function buildChartStudies() {
+  const studies = state.indicators.map(key => INDICATORS[key]);
+  if (state.maOverlays && state.maOverlays.emas) {
+    studies.push(
+      { id: "MAExp@tv-basicstudies", inputs: { length: 10 } },
+      { id: "MAExp@tv-basicstudies", inputs: { length: 20 } },
+      { id: "MAExp@tv-basicstudies", inputs: { length: 50 } }
+    );
+  }
+  if (state.maOverlays && state.maOverlays.sma150200) {
+    studies.push(
+      { id: "MASimple@tv-basicstudies", inputs: { length: 150 } },
+      { id: "MASimple@tv-basicstudies", inputs: { length: 200 } }
+    );
+  }
+  return studies;
+}
 function renderChart() {
   const host = $("chart"); host.replaceChildren();
   const container = document.createElement("div");
@@ -15,15 +32,16 @@ function renderChart() {
   const script = document.createElement("script");
   script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
   script.type = "text/javascript"; script.async = true;
+  const theme = resolvedTheme();
   script.textContent = JSON.stringify({
     autosize: true, symbol: state.selected, interval: state.interval, timezone: "exchange",
-    theme: resolvedTheme(), style: "1", locale: "en",
-    backgroundColor: resolvedTheme() === "light" ? "#ffffff" : "#0f172a",
-    gridColor: resolvedTheme() === "light" ? "rgba(15, 23, 42, 0.08)" : "rgba(148, 163, 184, 0.08)",
+    theme, style: "1", locale: "en",
+    backgroundColor: theme === "light" ? "#ffffff" : "#0f172a",
+    gridColor: theme === "light" ? "rgba(15, 23, 42, 0.08)" : "rgba(148, 163, 184, 0.08)",
     hide_top_toolbar: false, hide_side_toolbar: false,
     hide_legend: false, hide_volume: false, withdateranges: true, save_image: true,
     allow_symbol_change: false, calendar: false, details: false, hotlist: false,
-    studies: state.indicators.map(key => INDICATORS[key]), support_host: "https://www.tradingview.com"
+    studies: buildChartStudies(), support_host: "https://www.tradingview.com"
   });
   script.onerror = () => { if (container.isConnected) toast("Chart script could not load."); };
   container.append(chart, credit); host.appendChild(container); container.appendChild(script);
@@ -40,6 +58,25 @@ function renderIndicatorControls() {
     });
     label.append(checkbox, document.createTextNode(key));
     $("indicator-controls").appendChild(label);
+  }
+  const maHost = $("ma-overlay-controls");
+  if (maHost) {
+    maHost.replaceChildren();
+    const sets = [
+      { key: "emas", label: "EMAs 10/20/50" },
+      { key: "sma150200", label: "SMA 150/200" }
+    ];
+    for (const set of sets) {
+      const label = document.createElement("label"); label.className = "check";
+      const checkbox = document.createElement("input"); checkbox.type = "checkbox";
+      checkbox.checked = !!(state.maOverlays && state.maOverlays[set.key]);
+      checkbox.addEventListener("change", () => {
+        state.maOverlays = { ...defaultMaOverlays(), ...state.maOverlays, [set.key]: checkbox.checked };
+        persist(); renderChart();
+      });
+      label.append(checkbox, document.createTextNode(set.label));
+      maHost.appendChild(label);
+    }
   }
 }
 $("interval").value = state.interval;
