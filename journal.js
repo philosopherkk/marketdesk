@@ -16,15 +16,20 @@ function readNumber(id, optional = false) {
   if (!Number.isFinite(value)) throw new Error(`Invalid ${id}.`);
   return value;
 }
-function readTradeForm() {
+async function readTradeForm() {
+  const side = $("side").value;
+  const entry = readNumber("entry");
+  let stopLoss = readNumber("stop-loss", true);
+  if (stopLoss == null) stopLoss = defaultStopLoss(side, entry);
   const trade = {
     id: editingId || crypto.randomUUID(),
-    symbol: normalizeSymbol($("trade-symbol").value),
-    side: $("side").value,
+    symbol: await normalizeSymbol($("trade-symbol").value),
+    side,
     date: $("trade-date").value,
     exitDate: $("exit-date").value || null,
-    entry: readNumber("entry"),
+    entry,
     target: readNumber("target", true),
+    stopLoss,
     exit: readNumber("exit", true),
     quantity: readNumber("quantity"),
     multiplier: readNumber("multiplier"),
@@ -32,15 +37,34 @@ function readTradeForm() {
     currency: $("currency").value.trim().toUpperCase(),
     notes: $("notes").value.trim()
   };
-  if (!validTrade(trade)) throw new Error("Check date, currency, quantity, multiplier, fees.");
+  if (!validTrade(trade)) throw new Error("Check date, currency, quantity, multiplier, fees, stop.");
   return trade;
+}
+function syncDefaultStop() {
+  if ($("stop-loss").dataset.manual === "1") return;
+  try {
+    const entry = readNumber("entry");
+    const side = $("side").value;
+    const stop = defaultStopLoss(side, entry);
+    if (stop != null) $("stop-loss").value = stop;
+  } catch { /* incomplete */ }
 }
 function updatePreview() {
   const preview = $("pnl-preview"); preview.className = "";
   try {
-    const trade = readTradeForm();
-    const pnl = calculatePnL(trade);
-    preview.textContent = pnl === null ? "Open trade" : formatPnL(pnl, trade.currency);
+    const side = $("side").value;
+    const entry = readNumber("entry");
+    let stopLoss = readNumber("stop-loss", true);
+    if (stopLoss == null) stopLoss = defaultStopLoss(side, entry);
+    const exit = readNumber("exit", true);
+    const quantity = readNumber("quantity");
+    const multiplier = readNumber("multiplier");
+    const fees = readNumber("fees");
+    const currency = $("currency").value.trim().toUpperCase() || "USD";
+    const pnl = exit == null ? null : (exit - entry) * (side === "long" ? 1 : -1) * quantity * multiplier - fees;
+    preview.textContent = pnl === null
+      ? `Open · stop ${stopLoss == null ? "—" : formatNumber(stopLoss)}`
+      : formatPnL(pnl, currency);
     if (pnl !== null) preview.className = pnl >= 0 ? "positive" : "negative";
   } catch { preview.textContent = "Enter trade details"; }
 }
@@ -49,9 +73,12 @@ function resetTradeForm() {
   $("trade-symbol").value = state.selected;
   $("trade-date").value = localDate();
   $("currency").value = state.selected.startsWith("HKEX:") ? "HKD" : "USD";
+  $("stop-loss").dataset.manual = "0";
   $("trade-title").textContent = "Add trade";
   $("submit-trade").textContent = "Save trade";
-  formDirty = false; updatePreview();
+  formDirty = false;
+  syncDefaultStop();
+  updatePreview();
 }
 function editTrade(trade) {
   if (formDirty && !confirm("Discard unsaved form changes?")) return;
@@ -60,9 +87,11 @@ function editTrade(trade) {
     "trade-symbol": trade.symbol, "trade-date": trade.date, side: trade.side,
     entry: trade.entry, target: trade.target ?? "", exit: trade.exit ?? "",
     "exit-date": trade.exitDate ?? "", quantity: trade.quantity, multiplier: trade.multiplier,
-    fees: trade.fees, currency: trade.currency, notes: trade.notes
+    fees: trade.fees, currency: trade.currency, notes: trade.notes,
+    "stop-loss": trade.stopLoss ?? defaultStopLoss(trade.side, trade.entry) ?? ""
   };
   for (const [id, value] of Object.entries(fields)) $(id).value = value;
+  $("stop-loss").dataset.manual = "1";
   $("trade-title").textContent = "Edit trade";
   $("submit-trade").textContent = "Update trade";
   formDirty = false; updatePreview();
@@ -71,27 +100,33 @@ function renderJournal() {
   const body = $("journal-body"); body.replaceChildren();
   const trades = state.trades.filter(trade => !$("current-only").checked || trade.symbol === state.selected)
     .slice().sort((a, b) => b.date.localeCompare(a.date));
-  $("journal-count").textContent = `${trades.length} shown · ${state.trades.length} saved`;
+  $("journal-count").textContent = `${trades.length} shown · ${state.trades.length} saved locally`;
   $("journal-empty").hidden = trades.length > 0;
   for (const trade of trades) {
     const row = document.createElement("tr");
     const pnl = calculatePnL(trade);
+    const stop = trade.stopLoss ?? defaultStopLoss(trade.side, trade.entry);
     const values = [
       trade.date, trade.exitDate || "—", trade.symbol, trade.side.toUpperCase(),
       `${formatNumber(trade.quantity)} × ${formatNumber(trade.multiplier)}`,
-      formatNumber(trade.entry), trade.target == null ? "—" : formatNumber(trade.target),
-      trade.exit === null ? "—" : formatNumber(trade.exit), formatPnL(pnl, trade.currency)
+      formatNumber(trade.entry),
+      stop == null ? "—" : formatNumber(stop),
+      trade.target == null ? "—" : formatNumber(trade.target),
+      trade.exit === null ? "—" : formatNumber(trade.exit),
+      formatPnL(pnl, trade.currency)
     ];
     values.forEach((value, index) => {
       const cell = document.createElement("td"); cell.textContent = value;
       if (index === 2) cell.title = trade.notes || "No notes";
-      if (index === 8 && pnl !== null) cell.className = pnl >= 0 ? "positive" : "negative";
+      if (index === 5) cell.className = "entry-mark";
+      if (index === 6) cell.className = "stop-mark";
+      if (index === 9 && pnl !== null) cell.className = pnl >= 0 ? "positive" : "negative";
       row.appendChild(cell);
     });
     const actions = document.createElement("td");
     const buttons = document.createElement("div"); buttons.className = "row";
     buttons.append(
-      makeButton("Chart", () => selectSymbol(trade.symbol)),
+      makeButton("Chart", () => { selectSymbol(trade.symbol); }),
       makeButton("Edit", () => editTrade(trade)),
       makeButton("Delete", () => {
         if (!confirm(`Delete this ${trade.symbol} trade?`)) return;
@@ -103,17 +138,26 @@ function renderJournal() {
     actions.appendChild(buttons); row.appendChild(actions); body.appendChild(row);
   }
 }
-$("trade-form").addEventListener("input", () => { formDirty = true; updatePreview(); });
-$("trade-form").addEventListener("change", () => { formDirty = true; updatePreview(); });
-$("trade-form").addEventListener("submit", event => {
+$("trade-form").addEventListener("input", event => {
+  formDirty = true;
+  if (event.target && event.target.id === "stop-loss") $("stop-loss").dataset.manual = "1";
+  if (event.target && (event.target.id === "entry" || event.target.id === "side")) syncDefaultStop();
+  updatePreview();
+});
+$("trade-form").addEventListener("change", event => {
+  formDirty = true;
+  if (event.target && (event.target.id === "entry" || event.target.id === "side")) syncDefaultStop();
+  updatePreview();
+});
+$("trade-form").addEventListener("submit", async event => {
   event.preventDefault();
   try {
-    const trade = readTradeForm();
+    const trade = await readTradeForm();
     if (trade.symbol.endsWith("!")) throw new Error("Use a dated futures contract, not a continuous ! symbol.");
     if (editingId) state.trades = state.trades.map(item => item.id === editingId ? trade : item);
     else state.trades.push(trade);
     persist(); renderJournal(); resetTradeForm();
-    toast(persistenceBlocked ? "Session only — export a backup." : "Trade saved.");
+    toast(persistenceBlocked ? "Session only — export a backup." : "Trade saved on this device/browser.");
   } catch (error) { toast(error.message); }
 });
 $("reset-trade").addEventListener("click", () => {

@@ -1,5 +1,6 @@
 "use strict";
 const STORAGE_KEY = "marketdesk:v1";
+const BREADTH_CACHE_KEY = "marketdesk:breadth-cache:v1";
 const $ = id => document.getElementById(id);
 const CATALOG = [
   { symbol: "NASDAQ:AAPL", name: "Apple", market: "US" },
@@ -26,17 +27,65 @@ const INDICATORS = {
 };
 const INTERVALS = ["5", "15", "60", "240", "D", "W", "M"];
 const MARKETS = ["All", "US", "HK", "ETF", "Futures", "Crypto", "Other"];
+const FONT_SCALES = ["small", "medium", "large"];
+const THEMES = ["dark", "light", "system"];
+const YAHOO_EX_TO_TV = {
+  NMS: "NASDAQ", NGM: "NASDAQ", NCM: "NASDAQ", NAS: "NASDAQ", NIQ: "NASDAQ",
+  NYQ: "NYSE", NYE: "NYSE", NYS: "NYSE",
+  ASE: "AMEX", AMX: "AMEX", NYC: "AMEX", PCX: "AMEX", ARCA: "AMEX", BTS: "AMEX"
+};
+const US_PREFIXED = /^(NASDAQ|NYSE|AMEX):[A-Z0-9][A-Z0-9.-]{0,9}$/;
+const EXCHANGE_PREFIXED = /^[A-Z0-9_]+:[A-Z0-9_.!/-]+$/;
+const BARE_US = /^[A-Z][A-Z0-9.-]{0,9}$/;
+
 const defaults = () => ({
-  version: 1, selected: "NASDAQ:AAPL", interval: "D",
+  version: 1,
+  selected: "NASDAQ:AAPL",
+  interval: "D",
   indicators: ["RSI", "MACD"],
   watchlist: CATALOG.map(item => item.symbol),
-  trades: []
+  trades: [],
+  fontScale: "medium",
+  theme: "dark",
+  tapeOverride: null
 });
-const validSymbol = value => typeof value === "string" && value.length <= 80 && /^[A-Z0-9_]+:[A-Z0-9_.!/-]+$/.test(value);
-function normalizeSymbol(value) {
-  const symbol = value.trim().toUpperCase();
-  if (!validSymbol(symbol)) throw new Error("Use EXCHANGE:TICKER, for example NASDAQ:AAPL or HKEX:700.");
-  return symbol;
+
+const validSymbol = value => typeof value === "string" && value.length <= 80 && EXCHANGE_PREFIXED.test(value);
+function defaultStopLoss(side, entry) {
+  if (!Number.isFinite(entry) || entry <= 0) return null;
+  return side === "short" ? Number((entry * 1.05).toFixed(8)) : Number((entry * 0.95).toFixed(8));
+}
+function validTrade(t) {
+  return t && typeof t.id === "string" && validSymbol(t.symbol) && ["long", "short"].includes(t.side) &&
+    typeof t.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.date) &&
+    Number.isFinite(t.entry) && (t.exit === null || Number.isFinite(t.exit)) &&
+    (t.target === null || t.target === undefined || Number.isFinite(t.target)) &&
+    (t.stopLoss === null || t.stopLoss === undefined || Number.isFinite(t.stopLoss)) &&
+    (t.exitDate === null || t.exitDate === undefined || t.exitDate === "" || /^\d{4}-\d{2}-\d{2}$/.test(t.exitDate)) &&
+    Number.isFinite(t.quantity) && t.quantity > 0 && Number.isFinite(t.multiplier) && t.multiplier > 0 &&
+    Number.isFinite(t.fees) && t.fees >= 0 && typeof t.currency === "string" && /^[A-Z0-9]{2,10}$/.test(t.currency) &&
+    typeof t.notes === "string" && t.notes.length <= 2000;
+}
+function migrateState(data) {
+  const next = { ...defaults(), ...data, version: 1 };
+  if (!FONT_SCALES.includes(next.fontScale)) next.fontScale = "medium";
+  if (!THEMES.includes(next.theme)) next.theme = "dark";
+  if (next.tapeOverride != null && typeof next.tapeOverride !== "object") next.tapeOverride = null;
+  next.watchlist = [...new Set((next.watchlist || []).filter(validSymbol))];
+  next.trades = (next.trades || []).map(t => {
+    const trade = { target: null, exitDate: null, stopLoss: null, ...t };
+    if (trade.stopLoss == null && Number.isFinite(trade.entry)) {
+      trade.stopLoss = defaultStopLoss(trade.side, trade.entry);
+    }
+    return trade;
+  });
+  if (!validSymbol(next.selected) || !INTERVALS.includes(next.interval) ||
+      !Array.isArray(next.indicators) || !next.indicators.every(key => Object.hasOwn(INDICATORS, key)) ||
+      !Array.isArray(next.watchlist) || !next.watchlist.every(validSymbol) ||
+      !Array.isArray(next.trades) || !next.trades.every(validTrade)) {
+    throw new Error("Invalid saved data");
+  }
+  return next;
 }
 function localDate() {
   const d = new Date();
@@ -48,31 +97,12 @@ function toast(message) {
   $("toast").textContent = message; $("toast").hidden = false;
   clearTimeout(toastTimer); toastTimer = setTimeout(() => $("toast").hidden = true, 3500);
 }
-function validTrade(t) {
-  return t && typeof t.id === "string" && validSymbol(t.symbol) && ["long", "short"].includes(t.side) &&
-    typeof t.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.date) &&
-    Number.isFinite(t.entry) && (t.exit === null || Number.isFinite(t.exit)) &&
-    (t.target === null || t.target === undefined || Number.isFinite(t.target)) &&
-    (t.exitDate === null || t.exitDate === undefined || t.exitDate === "" || /^\d{4}-\d{2}-\d{2}$/.test(t.exitDate)) &&
-    Number.isFinite(t.quantity) && t.quantity > 0 && Number.isFinite(t.multiplier) && t.multiplier > 0 &&
-    Number.isFinite(t.fees) && t.fees >= 0 && typeof t.currency === "string" && /^[A-Z0-9]{2,10}$/.test(t.currency) &&
-    typeof t.notes === "string" && t.notes.length <= 2000;
-}
 let persistenceBlocked = false;
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaults();
-    const data = JSON.parse(raw);
-    if (data.version !== 1 || !validSymbol(data.selected) || !INTERVALS.includes(data.interval) ||
-        !Array.isArray(data.indicators) || !data.indicators.every(key => Object.hasOwn(INDICATORS, key)) ||
-        !Array.isArray(data.watchlist) || !data.watchlist.every(validSymbol) ||
-        !Array.isArray(data.trades) || !data.trades.every(validTrade)) {
-      throw new Error("Invalid saved data");
-    }
-    data.watchlist = [...new Set(data.watchlist)];
-    data.trades = data.trades.map(t => ({ target: null, exitDate: null, ...t }));
-    return data;
+    return migrateState(JSON.parse(raw));
   } catch (error) {
     persistenceBlocked = true;
     $("storage-label").textContent = "Temporary session — export to keep";
@@ -89,4 +119,72 @@ function persist() {
     $("storage-label").textContent = "Storage unavailable — export to keep";
     warn("Browser storage is unavailable or full. Export a backup before closing.");
   }
+}
+
+async function fetchJson(url) {
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
+function yahooExToTv(exchange) {
+  return YAHOO_EX_TO_TV[exchange] || null;
+}
+function catalogTvForBare(bare) {
+  const hit = CATALOG.find(item => item.symbol.endsWith(":" + bare) && ["US", "ETF"].includes(item.market));
+  return hit ? hit.symbol : null;
+}
+async function resolveBareUsSymbol(bare) {
+  const known = catalogTvForBare(bare);
+  if (known) return known;
+  const data = await fetchJson("https://finance-query.com/v2/lookup?q=" + encodeURIComponent(bare));
+  const quotes = data.quotes || [];
+  const us = quotes.filter(q => {
+    const sym = String(q.symbol || "").toUpperCase();
+    const type = String(q.quoteType || "").toLowerCase();
+    return sym === bare && (type === "equity" || type === "etf") && yahooExToTv(q.exchange);
+  });
+  const preferred = us[0];
+  if (!preferred) throw new Error("No US listing found for " + bare + ". Try NASDAQ:… / NYSE:… or HKEX:…");
+  return `${yahooExToTv(preferred.exchange)}:${bare.replace(/-/g, ".")}`;
+}
+/** Sync or async: prefixed symbols sync; bare US tickers may need lookup. */
+async function normalizeSymbol(value) {
+  const raw = value.trim().toUpperCase();
+  if (!raw) throw new Error("Enter a ticker, for example AAPL or HKEX:700.");
+  if (EXCHANGE_PREFIXED.test(raw)) {
+    if (!validSymbol(raw)) throw new Error("Use EXCHANGE:TICKER, for example NASDAQ:AAPL or HKEX:700.");
+    return raw;
+  }
+  if (!BARE_US.test(raw)) throw new Error("Use AAPL (US default) or NASDAQ:AAPL / HKEX:700.");
+  return resolveBareUsSymbol(raw);
+}
+function normalizeSymbolSync(value) {
+  const raw = value.trim().toUpperCase();
+  if (EXCHANGE_PREFIXED.test(raw)) {
+    if (!validSymbol(raw)) throw new Error("Use EXCHANGE:TICKER, for example NASDAQ:AAPL or HKEX:700.");
+    return raw;
+  }
+  if (!BARE_US.test(raw)) throw new Error("Use AAPL (US default) or NASDAQ:AAPL / HKEX:700.");
+  const known = catalogTvForBare(raw);
+  if (known) return known;
+  // Optimistic US NASDAQ path for typed bare symbols already on watchlist forms when offline lookup not run yet
+  throw new Error("Resolving US listing… use Open chart once, or type NASDAQ:" + raw);
+}
+
+function applyFontScale() {
+  document.documentElement.dataset.fontScale = state.fontScale || "medium";
+  document.querySelectorAll("[data-font-scale]").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-font-scale") === state.fontScale);
+  });
+}
+function resolvedTheme() {
+  if (state.theme === "light") return "light";
+  if (state.theme === "dark") return "dark";
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+function applyTheme() {
+  const theme = resolvedTheme();
+  document.documentElement.dataset.theme = theme;
+  const btn = $("theme-toggle");
+  if (btn) btn.textContent = theme === "light" ? "Dark" : "Daylight";
 }

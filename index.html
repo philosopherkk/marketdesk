@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark" data-font-scale="medium">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -17,7 +17,13 @@
       <span class="badge">PERSONAL WORKSPACE</span>
     </div>
     <div class="actions">
-      <small id="storage-label">Saved on this browser</small>
+      <div class="pref-group" title="Text size">
+        <button type="button" data-font-scale="small" aria-label="Small text">A−</button>
+        <button type="button" data-font-scale="medium" aria-label="Medium text">A</button>
+        <button type="button" data-font-scale="large" aria-label="Large text">A+</button>
+      </div>
+      <button type="button" id="theme-toggle">Daylight</button>
+      <small id="storage-label">Saved on this device/browser only · marketdesk:v1</small>
       <button id="export" type="button">Export backup</button>
       <button id="import-btn" type="button">Import backup</button>
       <input id="import-file" type="file" accept="application/json,.json" hidden>
@@ -39,7 +45,7 @@
           <button id="reload-chart" type="button">Reload chart</button>
         </div>
         <form class="symbol-form" id="symbol-form">
-          <input id="symbol-input" list="symbol-options" placeholder="NASDAQ:AAPL or HKEX:700" maxlength="80" required>
+          <input id="symbol-input" list="symbol-options" placeholder="AAPL (US default) or NASDAQ:AAPL / HKEX:700" maxlength="80" required>
           <datalist id="symbol-options"></datalist>
           <button class="primary" type="submit">Open chart</button>
           <button id="save-symbol" type="button">Save ticker</button>
@@ -79,12 +85,13 @@
         <div class="panel-head">
           <div>
             <h2>Daily US market update</h2>
-            <small>Top 3 bullish · top 3 bearish · day % snapshot · US equities only</small>
+            <small>Top 3 bullish · top 3 bearish · Preferred source: Tape daily desk</small>
           </div>
           <button type="button" id="refresh-movers">Refresh daily update</button>
         </div>
         <div class="padding stack">
-          <p class="muted movers-note">Day snapshot from finance-query.com Yahoo-style <code>day-gainers</code> / <code>day-losers</code> screeners, then filtered for liquid USD common stocks. Not a live tick feed and not a full-universe claim — click a ticker to open the chart.</p>
+          <p class="muted movers-note">Preferred source: <strong>Tape daily desk</strong> (repo <code>data/tape-daily.json</code> or local override). If Tape is missing, falls back to finance-query day-gainers/losers. Click a ticker for US chart (bare tickers default to US — not HK).</p>
+          <div class="row"><span class="badge" id="movers-source-badge">Source: …</span></div>
           <div class="muted" id="movers-meta">Daily update pending…</div>
           <div class="movers-grid">
             <div>
@@ -98,89 +105,83 @@
           </div>
         </div>
       </section>
+      <section class="panel minervini-panel" id="minervini">
+        <div class="panel-head">
+          <div>
+            <h2>Minervini-style momentum (~20)</h2>
+            <small>Approximate trend template · public charts · not proprietary SEPA</small>
+          </div>
+          <button type="button" id="refresh-minervini">Refresh screen</button>
+        </div>
+        <div class="padding stack">
+          <p class="muted" id="minervini-meta">Pending…</p>
+          <div id="minervini-list"></div>
+        </div>
+      </section>
       <section class="panel breadth-panel" id="market-breadth">
         <div class="panel-head">
           <div>
-            <h2>Market breadth · Stockbee MM reference</h2>
-            <small>Timing context · not a buy signal by itself</small>
+            <h2>Market breadth · Stockbee MM-style</h2>
+            <small>Auto-filled reconstruction · not a buy signal by itself</small>
           </div>
+          <button type="button" id="refresh-mm">Refresh breadth</button>
         </div>
         <div class="padding stack">
           <p>
-            <strong>Stockbee Market Monitor (MM)</strong> by Pradeep Bonde tracks breadth of major moves
-            (how many stocks are making large % moves) to help time risk-on / risk-off phases.
-            It is a market-timing reference — not a stock pick list and not invented here.
+            <strong>Stockbee Market Monitor (MM)</strong> by Pradeep Bonde tracks breadth of major moves for timing.
+            Credit:
+            <a href="https://stockbee.blogspot.com/p/mm.html" target="_blank" rel="noopener noreferrer">Stockbee MM</a>.
+            Numbers below are <strong>reconstructed MM-style breadth from public EOD/snapshot data — not official Stockbee membership numbers.</strong>
           </p>
-          <p class="muted">
-            Official live MM numbers come from
-            <a href="https://stockbee.blogspot.com/p/mm.html" target="_blank" rel="noopener noreferrer">Stockbee MM</a>
-            or your own scans — MarketDesk does <strong>not</strong> fabricate MM readings.
-            Public explainers:
-            <a href="https://stockbee.blogspot.com/2010/05/what-you-need-to-know-about-market.html" target="_blank" rel="noopener noreferrer">What you need to know about market breadth</a>,
-            <a href="https://stockbee.blogspot.com/2011/08/how-to-use-market-breadth-to-avoid.html" target="_blank" rel="noopener noreferrer">How to use market breadth</a>,
-            <a href="https://stockbee.blogspot.com/2018/08/market-monitor-scans.html" target="_blank" rel="noopener noreferrer">Market Monitor scans</a>.
-          </p>
-          <h3>Classic MM column names (cheat-sheet)</h3>
-          <div class="table-wrap">
-            <table class="mm-table">
-              <thead>
-                <tr><th>Column</th><th>What it counts</th></tr>
-              </thead>
-              <tbody>
-                <tr><td>4% up / 4% down (daily)</td><td># of common stocks up/down ≥4% on high volume that day</td></tr>
-                <tr><td>10-day cumulative breadth ratio</td><td>(sum of 4%+ days over 10) ÷ (sum of 4%− days over 10)</td></tr>
-                <tr><td>25%± quarter</td><td># up/down ≥25% over a quarter</td></tr>
-                <tr><td>25% / 50% month</td><td># with large monthly moves</td></tr>
-                <tr><td>34/13 bull &amp; bear</td><td># up/down ≥13% over 34 days</td></tr>
-                <tr><td>MMA+ / MMA−</td><td>% of stocks in confirmed uptrend / downtrend</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p class="notice-inline">Values above are labels only. Fill them from Stockbee or your scanner — never treat empty slots as zeros.</p>
-          <h3>Optional public proxies (not Stockbee MM)</h3>
-          <div id="breadth-proxy" class="proxy-box muted">Proxy context pending…</div>
+          <div class="muted" id="mm-meta">Pending…</div>
+          <div id="mm-metrics"></div>
         </div>
       </section>
       <section class="panel journal">
         <div class="panel-head">
-          <div><h2>Trade journal</h2><small id="journal-count"></small></div>
+          <div>
+            <h2>Saved trade journal</h2>
+            <small id="journal-count"></small>
+          </div>
           <label class="check"><input type="checkbox" id="current-only"> Current ticker only</label>
         </div>
+        <p class="journal-note padding">Saved on this device/browser only under <code>marketdesk:v1</code> (per-origin — localhost ≠ github.io). Use Export / Import backup to move trades. Target is never an exit.</p>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Date</th><th>Exit date</th><th>Symbol</th><th>Side</th><th>Qty × mult</th><th>Entry</th><th>Target</th><th>Actual exit</th><th>Net P&L</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Date</th><th>Exit date</th><th>Symbol</th><th>Side</th><th>Qty × mult</th><th>Entry / saved</th><th>Stop</th><th>Target</th><th>Actual exit</th><th>Net P&L</th><th>Actions</th></tr></thead>
             <tbody id="journal-body"></tbody>
           </table>
         </div>
-        <div id="journal-empty" class="empty">No trades yet.</div>
+        <div id="journal-empty" class="empty">No saved trades yet on this browser.</div>
       </section>
     </main>
     <aside class="panel trade-panel">
       <div class="panel-head"><h2 id="trade-title">Add trade</h2></div>
       <form id="trade-form" class="padding stack">
-        <label class="field"><span>Trade symbol</span><input id="trade-symbol" maxlength="80" required></label>
+        <label class="field"><span>Trade symbol</span><input id="trade-symbol" maxlength="80" placeholder="AAPL or NASDAQ:AAPL" required></label>
         <div class="two-cols">
           <label class="field"><span>Direction</span><select id="side"><option value="long">Long</option><option value="short">Short</option></select></label>
           <label class="field"><span>Entry date</span><input id="trade-date" type="date" required></label>
         </div>
         <div class="two-cols">
-          <label class="field"><span>Entry price</span><input id="entry" type="number" step="any" required></label>
+          <label class="field"><span>Entry / saved price</span><input id="entry" type="number" step="any" required></label>
+          <label class="field"><span>Stop loss (default 5%)</span><input id="stop-loss" type="number" step="any"></label>
+        </div>
+        <div class="two-cols">
           <label class="field"><span>Target — not an exit</span><input id="target" type="number" step="any"></label>
-        </div>
-        <div class="two-cols">
           <label class="field"><span>Actual exit</span><input id="exit" type="number" step="any"></label>
+        </div>
+        <div class="two-cols">
           <label class="field"><span>Exit date</span><input id="exit-date" type="date"></label>
-        </div>
-        <div class="two-cols">
           <label class="field"><span>Quantity</span><input id="quantity" type="number" step="any" min="0" value="1" required></label>
-          <label class="field"><span>Multiplier</span><input id="multiplier" type="number" step="any" min="0" value="1" required></label>
         </div>
         <div class="two-cols">
+          <label class="field"><span>Multiplier</span><input id="multiplier" type="number" step="any" min="0" value="1" required></label>
           <label class="field"><span>Fees</span><input id="fees" type="number" step="any" min="0" value="0" required></label>
-          <label class="field"><span>Currency</span><input id="currency" value="USD" maxlength="10" required></label>
         </div>
+        <label class="field"><span>Currency</span><input id="currency" value="USD" maxlength="10" required></label>
         <label class="field"><span>Notes</span><textarea id="notes" maxlength="2000"></textarea></label>
-        <div class="preview"><small>Closed-trade net P&L</small><strong id="pnl-preview">Open trade</strong></div>
+        <div class="preview"><small>Closed-trade net P&L (target ignored)</small><strong id="pnl-preview">Open trade</strong></div>
         <div class="row">
           <button type="submit" class="primary" id="submit-trade">Save trade</button>
           <button type="button" id="reset-trade">Clear / new</button>
@@ -188,7 +189,7 @@
       </form>
     </aside>
   </div>
-  <footer>Personal analysis only. TradingView charts. Day snapshots via finance-query.com — not a live tick feed. Stockbee MM is referenced with credit; official MM numbers are not generated here.</footer>
+  <footer>Personal analysis only. TradingView charts. Day snapshots via finance-query.com. Tape desk preferred for daily US update. Reconstructed MM-style breadth is not official Stockbee. Saved on this device/browser only.</footer>
   <div id="toast" role="status" hidden></div>
   <script src="core.js"></script>
   <script src="ui.js"></script>

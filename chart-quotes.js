@@ -17,8 +17,10 @@ function renderChart() {
   script.type = "text/javascript"; script.async = true;
   script.textContent = JSON.stringify({
     autosize: true, symbol: state.selected, interval: state.interval, timezone: "exchange",
-    theme: "dark", style: "1", locale: "en", backgroundColor: "#0f172a",
-    gridColor: "rgba(148, 163, 184, 0.08)", hide_top_toolbar: false, hide_side_toolbar: false,
+    theme: resolvedTheme(), style: "1", locale: "en",
+    backgroundColor: resolvedTheme() === "light" ? "#ffffff" : "#0f172a",
+    gridColor: resolvedTheme() === "light" ? "rgba(15, 23, 42, 0.08)" : "rgba(148, 163, 184, 0.08)",
+    hide_top_toolbar: false, hide_side_toolbar: false,
     hide_legend: false, hide_volume: false, withdateranges: true, save_image: true,
     allow_symbol_change: false, calendar: false, details: false, hotlist: false,
     studies: state.indicators.map(key => INDICATORS[key]), support_host: "https://www.tradingview.com"

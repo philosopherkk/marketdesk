@@ -2,7 +2,7 @@
 
 Repo: https://github.com/philosopherkk/marketdesk
 
-Files: `index.html`, `styles.css`, `core.js`, `ui.js`, `chart-quotes.js`, `journal.js`, `market-panels.js`.
+Files: `index.html`, `styles.css`, `core.js`, `ui.js`, `chart-quotes.js`, `journal.js`, `market-panels.js`, `data/tape-daily.json`.
 
 ## Run locally
 
