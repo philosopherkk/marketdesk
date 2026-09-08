@@ -59,8 +59,10 @@
             </select>
           </label>
           <div class="row" id="indicator-controls"></div>
+          <div class="row" id="ma-overlay-controls"></div>
           <button type="button" id="refresh-quote">Refresh snapshot</button>
         </div>
+        <p class="chart-studies-note padding">Free TV widget studies — no TradingView subscription. Default overlays: EMA 10/20/50 + SMA 150/200 (toggle above). Theme follows Daylight/Dark.</p>
         <div class="quote-bar" id="quote-bar">
           <div class="quote-heading">
             <strong>Day snapshot</strong>
@@ -129,10 +131,11 @@
         </div>
         <div class="padding stack">
           <p>
-            <strong>Stockbee Market Monitor (MM)</strong> by Pradeep Bonde tracks breadth of major moves for timing.
+            <strong>Stockbee Market Monitor (MM)</strong> by Pradeep Bonde — classic Type / Indicator / Value / Comments layout with color coding.
             Credit:
             <a href="https://stockbee.blogspot.com/p/mm.html" target="_blank" rel="noopener noreferrer">Stockbee MM</a>.
-            Numbers below are <strong>reconstructed MM-style breadth from public EOD/snapshot data — not official Stockbee membership numbers.</strong>
+            Auto-filled numbers are <strong>reconstructed from public EOD/snapshot data — not official Stockbee membership numbers.</strong>
+            Missing rows show “—” (never invented).
           </p>
           <div class="muted" id="mm-meta">Pending…</div>
           <div id="mm-metrics"></div>

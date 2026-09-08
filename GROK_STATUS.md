@@ -1,16 +1,22 @@
-# GROK_STATUS — 2026-09-08 HKT
+# GROK_STATUS — 2026-09-08 HKT · v1.2.0
 
-## Merge status
+## This release
 
-- PR #2 merged to `main`: `8e29765` (2026-09-08T12:51:37Z)
-- Live site already served PR #2 UI (font/theme/Tape/Minervini/MM/stops/US-default)
+- Stockbee MM **table layout** (Type / Indicator / Value / Comments) with green/red/amber tone classes; auto-filled; not official Stockbee.
+- Free TV widget MA overlays: EMA 10/20/50 + SMA 150/200 (toggles persisted in `maOverlays`).
+- Version **1.2.0** · updated **2026-09-08 HKT**.
 
-## This follow-up
+## Color map (approx)
 
-- Standing rule: every publish shows **version + updated date (HKT)** in header and footer.
-- Release **1.1.0** · updated **2026-09-08 HKT** (post–PR#1 baseline; this feature set).
-- Sources of truth: `VERSION` file + `APP_VERSION` / `APP_UPDATED` in `core.js` (keep in sync).
+- bull-extreme / bull / bull-soft → green intensity (e.g. 4% up ≥500/300, ratio ≥2)
+- bear-extreme / bear / bear-soft → red intensity (e.g. 4% down extremes, ratio ≤0.5)
+- neutral → amber/muted mid-range
+- na → “—” + reason
+
+## Default MAs
+
+EMAs 10/20/50 ON · SMA 150/200 ON (free widget studies; no paid Charting Library).
 
 ## Reminder
 
-localStorage is per-origin. `localhost` ≠ `github.io`.
+localStorage per-origin. `localhost` ≠ `github.io`.
