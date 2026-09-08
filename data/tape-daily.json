@@ -1,0 +1,16 @@
+{
+  "asOf": "2026-09-08T12:23:00Z",
+  "asOfLabel": "Tue 8 Sep 2026 ~20:23 HKT",
+  "source": "Tape desk",
+  "notes": "US cash pre-open Tue; Fri 4 Sep lasts used; constructive vs weak desk stance (Iran/Gulf + Warsh/hike), NOT Friday largest % day-movers.",
+  "bullish": [
+    { "symbol": "XOM", "reason": "Gulf geo / oil / energy beta" },
+    { "symbol": "CVX", "reason": "Gulf geo / oil / energy beta" },
+    { "symbol": "XLE", "reason": "Gulf geo / oil / energy beta" }
+  ],
+  "bearish": [
+    { "symbol": "QQQ", "reason": "hike/duration / rate-sensitive growth" },
+    { "symbol": "XLK", "reason": "hike/duration / rate-sensitive growth" },
+    { "symbol": "TLT", "reason": "hike/duration / rate-sensitive growth" }
+  ]
+}

@@ -15,34 +15,25 @@ $("import-file").addEventListener("change", async event => {
   event.target.value = "";
   if (!file) return;
   try {
-    const data = JSON.parse(await file.text());
-    if (data.version !== 1 || !validSymbol(data.selected) || !INTERVALS.includes(data.interval) ||
-        !Array.isArray(data.indicators) || !data.indicators.every(key => Object.hasOwn(INDICATORS, key)) ||
-        !Array.isArray(data.watchlist) || !data.watchlist.every(validSymbol) ||
-        !Array.isArray(data.trades) || !data.trades.every(validTrade)) {
-      throw new Error("Backup failed validation.");
-    }
+    const data = migrateState(JSON.parse(await file.text()));
     const preview = `${data.watchlist.length} tickers, ${data.trades.length} trades, selected ${data.selected}`;
     if (!confirm(`Replace current workspace with this backup?\n${preview}`)) return;
-    state = {
-      version: 1, selected: data.selected, interval: data.interval,
-      indicators: data.indicators, watchlist: [...new Set(data.watchlist)],
-      trades: data.trades.map(t => ({ target: t.target ?? null, exitDate: t.exitDate ?? null, ...t }))
-    };
+    state = data;
     persist();
     $("symbol-input").value = state.selected;
     $("current-symbol").textContent = state.selected;
     $("interval").value = state.interval;
+    applyFontScale(); applyTheme();
     renderMarkets(); renderIndicatorControls(); renderWatchlist();
     resetTradeForm(); renderJournal(); renderChart(); loadQuote();
     toast("Backup imported.");
   } catch (error) { toast(error.message || "Import failed."); }
 });
 $("export-csv").addEventListener("click", () => {
-  const header = ["id","date","exitDate","symbol","side","quantity","multiplier","entry","target","exit","fees","currency","notes","pnl"];
+  const header = ["id","date","exitDate","symbol","side","quantity","multiplier","entry","target","stopLoss","exit","fees","currency","notes","pnl"];
   const rows = state.trades.map(t => {
     const pnl = calculatePnL(t);
-    return [t.id, t.date, t.exitDate || "", t.symbol, t.side, t.quantity, t.multiplier, t.entry, t.target ?? "", t.exit ?? "", t.fees, t.currency, `"${(t.notes || "").replace(/"/g, '""')}"`, pnl === null ? "" : pnl].join(",");
+    return [t.id, t.date, t.exitDate || "", t.symbol, t.side, t.quantity, t.multiplier, t.entry, t.target ?? "", t.stopLoss ?? "", t.exit ?? "", t.fees, t.currency, `"${(t.notes || "").replace(/"/g, '""')}"`, pnl === null ? "" : pnl].join(",");
   });
   downloadBlob(`marketdesk-journal-${localDate()}.csv`, new Blob([[header.join(","), ...rows].join("\n")], { type: "text/csv" }));
 });
@@ -82,7 +73,7 @@ function renderWatchlist() {
   );
   for (const item of visible) {
     const row = document.createElement("div"); row.className = "watch-row";
-    const open = makeButton("", () => selectSymbol(item.symbol), "watch-symbol" + (item.symbol === state.selected ? " active" : ""));
+    const open = makeButton("", () => { selectSymbol(item.symbol); }, "watch-symbol" + (item.symbol === state.selected ? " active" : ""));
     const title = document.createElement("strong"); title.textContent = item.symbol.split(":")[1];
     const subtitle = document.createElement("small"); subtitle.textContent = `${item.name} · ${item.symbol.split(":")[0]}`;
     open.append(title, subtitle); open.title = item.symbol;
@@ -95,24 +86,25 @@ function renderWatchlist() {
   }
 }
 let editingId = null; let formDirty = false;
-function selectSymbol(symbol) {
+async function selectSymbol(symbolOrBare) {
+  const symbol = await normalizeSymbol(String(symbolOrBare));
   state.selected = symbol;
   $("symbol-input").value = symbol;
   $("current-symbol").textContent = symbol;
   if (!formDirty && !editingId) resetTradeForm();
   persist(); renderWatchlist(); renderJournal(); renderChart(); loadQuote();
 }
-$("symbol-form").addEventListener("submit", event => {
+$("symbol-form").addEventListener("submit", async event => {
   event.preventDefault();
-  try { selectSymbol(normalizeSymbol($("symbol-input").value)); }
+  try { await selectSymbol($("symbol-input").value); }
   catch (error) { toast(error.message); }
 });
-$("save-symbol").addEventListener("click", () => {
+$("save-symbol").addEventListener("click", async () => {
   try {
-    const symbol = normalizeSymbol($("symbol-input").value);
+    const symbol = await normalizeSymbol($("symbol-input").value);
     if (!state.watchlist.includes(symbol)) state.watchlist.push(symbol);
     marketFilter = "All"; $("watch-search").value = "";
-    renderMarkets(); selectSymbol(symbol); toast("Ticker saved to watchlist.");
+    renderMarkets(); await selectSymbol(symbol); toast("Ticker saved to watchlist.");
   } catch (error) { toast(error.message); }
 });
 $("watch-search").addEventListener("input", renderWatchlist);
@@ -120,4 +112,28 @@ for (const item of CATALOG) {
   const option = document.createElement("option");
   option.value = item.symbol; option.label = `${item.name} · ${item.market}`;
   $("symbol-options").appendChild(option);
+  if (["US", "ETF"].includes(item.market)) {
+    const bare = document.createElement("option");
+    bare.value = item.symbol.split(":")[1];
+    bare.label = `${item.name} · US default`;
+    $("symbol-options").appendChild(bare);
+  }
 }
+
+document.querySelectorAll("[data-font-scale]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    state.fontScale = btn.getAttribute("data-font-scale");
+    persist(); applyFontScale();
+  });
+});
+$("theme-toggle").addEventListener("click", () => {
+  const current = resolvedTheme();
+  state.theme = current === "light" ? "dark" : "light";
+  persist(); applyTheme(); renderChart();
+});
+window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+  if (state.theme === "system") { applyTheme(); renderChart(); }
+});
+applyFontScale();
+applyTheme();
+if (!persistenceBlocked) $("storage-label").textContent = "Saved on this device/browser only · marketdesk:v1";
