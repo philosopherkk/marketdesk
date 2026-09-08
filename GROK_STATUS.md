@@ -1,65 +1,50 @@
 # GROK_STATUS — 2026-09-08 (Cursor cloud agent)
 
-## Files confirmed present
+## Storage
 
-| File | Status |
-|------|--------|
-| README.md | present |
-| CURSOR_HANDOFF.md | present |
-| index.html | present |
-| styles.css | present |
-| core.js | present |
-| ui.js | present |
-| chart-quotes.js | present |
-| journal.js | present |
-| .github/workflows/pages.yml | present |
+`marketdesk:v1` unchanged — no schema rewrite / no migrator. Daily movers + breadth proxies are ephemeral (fetched in-session only).
 
-Storage key remains `marketdesk:v1`. No storage format change / no migrator needed.
+## Files changed this pass
 
-## Files changed this pass (homework day snapshot)
-
-- `index.html` — quote strip reordered: primary Open / High / Low / Close·Last; “Day snapshot” heading; “Refresh snapshot” button; footer wording
-- `styles.css` — OHLC primary row + secondary row layout (mobile 2×2 OHLC)
-- `chart-quotes.js` — populate separate High/Low; Close/Last from finance-query snapshot; “as of” meta; comment that 5‑min refresh is homework only (not streaming)
-- `CURSOR_HANDOFF.md` — day-snapshot wording (not live ticks)
+- `market-panels.js` **(new)** — daily US top-3 bull/bear from finance-query `day-gainers` / `day-losers`; click → `selectSymbol`; Stockbee MM reference + optional VIX/SPY/QQQ **proxy** snapshots
+- `index.html` — Daily US market update panel + Market breadth / Stockbee MM section; script include
+- `styles.css` — movers grid + MM/proxy styles
 - `GROK_STATUS.md` — this update
 
-Earlier on same branch: `pages.yml` enablement, README Pages Settings note, `.gitignore`.
+Earlier on same branch: day OHLC quote strip, Pages `enablement`, README Pages note.
 
-## Quote strip: before → after
+## How daily movers are sourced (honest)
 
-**Before:** Last · Change · Prev close · Open · Day range (combined) · Volume · 52-week · State/source  
-**After (primary):** Open · High · Low · Close / Last  
-**After (secondary):** Change vs prev · Prev close · Volume · 52-week · Market state / as of  
+1. Public finance-query.com Yahoo-style screeners: `/v2/screeners/day-gainers?count=25` and `/v2/screeners/day-losers?count=25` (no API key in frontend).
+2. Client filter: `quoteType === EQUITY`, USD, mapped US exchanges (NASDAQ/NYSE/AMEX), liquidity floor (avg vol ≥ 200k or similar).
+3. Rank by `regularMarketChangePercent`; show top 3 each side with ticker, day %, Close.
+4. Labeled **daily update / day snapshot · not live ticks**. Not a claim of full-universe ranking beyond the screener + filter.
 
-Framing: “Day snapshot / Yahoo-style homework print · not a live tick feed”. Same `finance-query.com/v2/quote` path. TradingView embed unchanged (no scrape).
+## Stockbee MM
+
+- Reference section with plain-English what MM is + credit links to https://stockbee.blogspot.com/p/mm.html and public breadth explainers.
+- Cheat-sheet of classic column **names** only (4% up/down, 10-day ratio, 25%± quarter, etc.).
+- Explicit: official live MM numbers come from Stockbee / user’s scans — **not invented here**.
+- Optional **proxy** line: VIX / SPY / QQQ day snapshots via finance-query — labeled proxy / not official MM.
+
+## Browser-tested (`localhost:8000`, hard refresh)
+
+| Check | Result |
+|-------|--------|
+| Day OHLC AAPL Open/High/Low/Close | PASS (328.305 / 328.93 / 317.86 / 319.97) |
+| Top 3 bull (BLTE +13.16%, AEHR +13.10%, SNDK +11.90%) | PASS |
+| Top 3 bear (GWRE −19.93%, LULU −17.38%, FICO −16.68%) | PASS |
+| Click BLTE → chart `NASDAQ:BLTE` | PASS |
+| Stockbee MM link + cheat-sheet + no fake MM counts | PASS |
+| Proxy VIX/SPY/QQQ numeric as-of | PASS |
 
 ## GitHub Pages
 
-- URL https://philosopherkk.github.io/marketdesk/ still **404** until KK enables Pages.
-- **KK:** Settings → Pages → Source → **GitHub Actions**, then re-run Deploy Pages / merge to `main`.
-
-## Browser smoke (localhost:8000) — day OHLC
-
-Hard-refreshed page. Chart embed left alone; only snapshot strip verified for this correction.
-
-| Symbol | Open | High | Low | Close / Last | Result |
-|--------|------|------|-----|--------------|--------|
-| NASDAQ:AAPL | 328.305 | 328.93 | 317.86 | 319.97 | PASS |
-| COINBASE:BTCUSD | 79,093.85 | 79,455.586 | 78,262.29 | 78,665.69 | PASS |
-
-Meta showed `as of … · homework snapshot` (AAPL PRE; BTCUSD REGULAR). Values from UI only — not invented.
-
-Prior chart matrix (unchanged conclusion): AAPL/BTCUSD charts PASS; HKEX:700 & CME_MINI:ES1! free-widget FAIL; quotes still PASS.
-
-## What failed / blockers
-
-1. Pages Settings still needs KK’s one click.
-2. Free TradingView widget still may not render HKEX / continuous futures.
+Still **404** at https://philosopherkk.github.io/marketdesk/ until KK: Settings → Pages → Source → **GitHub Actions**.
 
 ## Next smallest patch
 
-Static one-line notice under the chart: free TradingView widget may miss some HKEX/futures symbols; homework day snapshot is independent. Optional embed container cache-bust on `renderChart()`.
+Optional: “Add to watchlist” on mover rows; or cache movers for the calendar day in a **separate** key (not `marketdesk:v1`) to avoid re-fetch spam.
 
 ## Reminder for KK
 

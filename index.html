@@ -75,6 +75,72 @@
         </div>
         <div id="chart"></div>
       </section>
+      <section class="panel market-update" id="daily-update">
+        <div class="panel-head">
+          <div>
+            <h2>Daily US market update</h2>
+            <small>Top 3 bullish · top 3 bearish · day % snapshot · US equities only</small>
+          </div>
+          <button type="button" id="refresh-movers">Refresh daily update</button>
+        </div>
+        <div class="padding stack">
+          <p class="muted movers-note">Day snapshot from finance-query.com Yahoo-style <code>day-gainers</code> / <code>day-losers</code> screeners, then filtered for liquid USD common stocks. Not a live tick feed and not a full-universe claim — click a ticker to open the chart.</p>
+          <div class="muted" id="movers-meta">Daily update pending…</div>
+          <div class="movers-grid">
+            <div>
+              <h3 class="movers-title bullish">Top 3 bullish</h3>
+              <div id="movers-bull" class="movers-list"></div>
+            </div>
+            <div>
+              <h3 class="movers-title bearish">Top 3 bearish</h3>
+              <div id="movers-bear" class="movers-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="panel breadth-panel" id="market-breadth">
+        <div class="panel-head">
+          <div>
+            <h2>Market breadth · Stockbee MM reference</h2>
+            <small>Timing context · not a buy signal by itself</small>
+          </div>
+        </div>
+        <div class="padding stack">
+          <p>
+            <strong>Stockbee Market Monitor (MM)</strong> by Pradeep Bonde tracks breadth of major moves
+            (how many stocks are making large % moves) to help time risk-on / risk-off phases.
+            It is a market-timing reference — not a stock pick list and not invented here.
+          </p>
+          <p class="muted">
+            Official live MM numbers come from
+            <a href="https://stockbee.blogspot.com/p/mm.html" target="_blank" rel="noopener noreferrer">Stockbee MM</a>
+            or your own scans — MarketDesk does <strong>not</strong> fabricate MM readings.
+            Public explainers:
+            <a href="https://stockbee.blogspot.com/2010/05/what-you-need-to-know-about-market.html" target="_blank" rel="noopener noreferrer">What you need to know about market breadth</a>,
+            <a href="https://stockbee.blogspot.com/2011/08/how-to-use-market-breadth-to-avoid.html" target="_blank" rel="noopener noreferrer">How to use market breadth</a>,
+            <a href="https://stockbee.blogspot.com/2018/08/market-monitor-scans.html" target="_blank" rel="noopener noreferrer">Market Monitor scans</a>.
+          </p>
+          <h3>Classic MM column names (cheat-sheet)</h3>
+          <div class="table-wrap">
+            <table class="mm-table">
+              <thead>
+                <tr><th>Column</th><th>What it counts</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>4% up / 4% down (daily)</td><td># of common stocks up/down ≥4% on high volume that day</td></tr>
+                <tr><td>10-day cumulative breadth ratio</td><td>(sum of 4%+ days over 10) ÷ (sum of 4%− days over 10)</td></tr>
+                <tr><td>25%± quarter</td><td># up/down ≥25% over a quarter</td></tr>
+                <tr><td>25% / 50% month</td><td># with large monthly moves</td></tr>
+                <tr><td>34/13 bull &amp; bear</td><td># up/down ≥13% over 34 days</td></tr>
+                <tr><td>MMA+ / MMA−</td><td>% of stocks in confirmed uptrend / downtrend</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="notice-inline">Values above are labels only. Fill them from Stockbee or your scanner — never treat empty slots as zeros.</p>
+          <h3>Optional public proxies (not Stockbee MM)</h3>
+          <div id="breadth-proxy" class="proxy-box muted">Proxy context pending…</div>
+        </div>
+      </section>
       <section class="panel journal">
         <div class="panel-head">
           <div><h2>Trade journal</h2><small id="journal-count"></small></div>
@@ -122,11 +188,12 @@
       </form>
     </aside>
   </div>
-  <footer>Personal analysis only. TradingView charts. Day snapshot (Open / High / Low / Close) via finance-query.com — not a live tick feed.</footer>
+  <footer>Personal analysis only. TradingView charts. Day snapshots via finance-query.com — not a live tick feed. Stockbee MM is referenced with credit; official MM numbers are not generated here.</footer>
   <div id="toast" role="status" hidden></div>
   <script src="core.js"></script>
   <script src="ui.js"></script>
   <script src="chart-quotes.js"></script>
   <script src="journal.js"></script>
+  <script src="market-panels.js"></script>
 </body>
 </html>

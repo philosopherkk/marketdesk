@@ -67,7 +67,29 @@ a { color: #a5b4fc; }
 .preview strong { display: block; font-size: 22px; margin-top: 4px; overflow-wrap: anywhere; }
 .positive { color: var(--green); }
 .negative { color: var(--red); }
-.journal { margin-top: 14px; }
+.journal, .market-update, .breadth-panel { margin-top: 14px; }
+.movers-note { font-size: 12px; }
+.movers-note code { font-size: 11px; color: #c7d2fe; }
+.movers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.movers-title { font-size: 13px; margin-bottom: 8px; letter-spacing: .02em; text-transform: uppercase; }
+.movers-title.bullish { color: var(--green); }
+.movers-title.bearish { color: var(--red); }
+.movers-list { display: grid; gap: 6px; }
+.mover-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 12px; background: #0c1320; }
+.mover-row strong, .mover-row small { display: block; }
+.mover-row small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+.mover-stats { text-align: right; flex-shrink: 0; }
+.movers-empty { padding: 12px; margin: 0; }
+.mm-table { white-space: normal; }
+.mm-table td:first-child { font-weight: 600; color: #e2e8f0; min-width: 180px; }
+.notice-inline { font-size: 12px; color: #fde68a; background: #262217; border: 1px solid #57502c; border-radius: 8px; padding: 10px 12px; }
+.proxy-box { background: #0c1320; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.proxy-list { margin: 8px 0 0; padding-left: 18px; }
+.proxy-list li { margin: 4px 0; }
+.breadth-panel h3 { font-size: 14px; margin-top: 4px; }
+@media (max-width: 760px) {
+  .movers-grid { grid-template-columns: 1fr; }
+}
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; white-space: nowrap; font-size: 12px; }
 th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
