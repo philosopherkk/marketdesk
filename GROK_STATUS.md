@@ -14,49 +14,53 @@
 | journal.js | present |
 | .github/workflows/pages.yml | present |
 
-Storage key remains `marketdesk:v1`. No storage format change.
+Storage key remains `marketdesk:v1`. No storage format change / no migrator needed.
 
-## Files changed this pass
+## Files changed this pass (homework day snapshot)
 
-- `.github/workflows/pages.yml` — set `configure-pages` `enablement: true` so the workflow can provision Pages when policy allows
-- `README.md` — Pages source = GitHub Actions; exact Settings click for KK; localStorage origin reminder
-- `GROK_STATUS.md` — this file
+- `index.html` — quote strip reordered: primary Open / High / Low / Close·Last; “Day snapshot” heading; “Refresh snapshot” button; footer wording
+- `styles.css` — OHLC primary row + secondary row layout (mobile 2×2 OHLC)
+- `chart-quotes.js` — populate separate High/Low; Close/Last from finance-query snapshot; “as of” meta; comment that 5‑min refresh is homework only (not streaming)
+- `CURSOR_HANDOFF.md` — day-snapshot wording (not live ticks)
+- `GROK_STATUS.md` — this update
 
-No app behavior / UI polish this pass (chart matrix not fully green).
+Earlier on same branch: `pages.yml` enablement, README Pages Settings note, `.gitignore`.
+
+## Quote strip: before → after
+
+**Before:** Last · Change · Prev close · Open · Day range (combined) · Volume · 52-week · State/source  
+**After (primary):** Open · High · Low · Close / Last  
+**After (secondary):** Change vs prev · Prev close · Volume · 52-week · Market state / as of  
+
+Framing: “Day snapshot / Yahoo-style homework print · not a live tick feed”. Same `finance-query.com/v2/quote` path. TradingView embed unchanged (no scrape).
 
 ## GitHub Pages
 
-- Repo is **public**; `has_pages: false` at check time.
-- URL https://philosopherkk.github.io/marketdesk/ returned **HTTP 404**.
-- Recent **Deploy Pages** runs on `main` failed at `actions/configure-pages@v5` with: Pages site Not Found (Pages never enabled).
-- Cloud agent **cannot** flip Settings → Pages (API POST `/pages` → 403).
-- **KK must click:** Settings → Pages → Build and deployment → Source → **GitHub Actions**, then re-run **Deploy Pages** (or merge this PR and push to `main`).
+- URL https://philosopherkk.github.io/marketdesk/ still **404** until KK enables Pages.
+- **KK:** Settings → Pages → Source → **GitHub Actions**, then re-run Deploy Pages / merge to `main`.
 
-## Browser tests (localhost:8000)
+## Browser smoke (localhost:8000) — day OHLC
 
-Served with `python3 -m http.server 8000`. Chart = TradingView Advanced Chart embed (no iframe scrape). Quote = `#quote-bar` via finance-query.com. Prices below are what the UI showed; not invented.
+Hard-refreshed page. Chart embed left alone; only snapshot strip verified for this correction.
 
-| Symbol | Chart | Quote | Visible Last / notes |
-|--------|-------|-------|----------------------|
-| NASDAQ:AAPL | PASS | PASS | Last **319.97**; candles + RSI/MACD visible |
-| HKEX:700 | FAIL | PASS | Last **435.4** (0700.HK homework print). Widget bound `HKEX:700` but free embed showed **“This symbol is only available on TradingView.”** / empty OHLC |
-| CME_MINI:ES1! | FAIL | PASS | Last **7,706.25** (ES=F). Same free-widget restriction toast; empty OHLC |
-| COINBASE:BTCUSD | PASS | PASS | Last **78,873.42**; Bitcoin candles visible |
+| Symbol | Open | High | Low | Close / Last | Result |
+|--------|------|------|-----|--------------|--------|
+| NASDAQ:AAPL | 328.305 | 328.93 | 317.86 | 319.97 | PASS |
+| COINBASE:BTCUSD | 79,093.85 | 79,455.586 | 78,262.29 | 78,665.69 | PASS |
 
-Quote strip: **4/4 PASS**. Chart: **2/4 PASS** (AAPL, BTCUSD). HKEX / continuous futures limited by free TradingView widget — expected hard-boundary risk, not a scraped workaround.
+Meta showed `as of … · homework snapshot` (AAPL PRE; BTCUSD REGULAR). Values from UI only — not invented.
 
-Screenshots kept under agent artifacts (not committed): aapl, hkex700, es1, btcusd + retests.
+Prior chart matrix (unchanged conclusion): AAPL/BTCUSD charts PASS; HKEX:700 & CME_MINI:ES1! free-widget FAIL; quotes still PASS.
 
 ## What failed / blockers
 
-1. Pages not enabled in repo Settings (agent cannot toggle).
-2. Free TradingView widget does not render HKEX:700 or CME_MINI:ES1! data in this browser (quotes still work).
-3. Early HKEX/ES1 screenshots sometimes still showed a stale Apple canvas before the widget finished rebinding — Reload chart + wait needed when judging chart success.
+1. Pages Settings still needs KK’s one click.
+2. Free TradingView widget still may not render HKEX / continuous futures.
 
 ## Next smallest patch
 
-Add a static one-line notice under the chart (no iframe reading): free TradingView widget may not load every HKEX / futures continuous symbol; homework quotes are independent. Optionally cache-bust the embed container id on each `renderChart()` to reduce stale-canvas confusion. Do **not** scrape TradingView or invent fills.
+Static one-line notice under the chart: free TradingView widget may miss some HKEX/futures symbols; homework day snapshot is independent. Optional embed container cache-bust on `renderChart()`.
 
 ## Reminder for KK
 
-**localStorage is per-origin.** Data on `http://localhost:8000` does not appear on `https://philosopherkk.github.io/marketdesk/`. Export backup before switching hosts.
+**localStorage is per-origin.** `localhost` ≠ `github.io`. Export backup before switching hosts.

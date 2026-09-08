@@ -73,42 +73,56 @@ const fmtVol = v => {
   if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
   return String(n);
 };
+function clearQuoteFields(placeholder) {
+  $("quote-open").textContent = placeholder;
+  $("quote-high").textContent = placeholder;
+  $("quote-low").textContent = placeholder;
+  $("quote-price").textContent = placeholder;
+  $("quote-change").textContent = placeholder;
+  $("quote-change").className = "";
+  $("quote-prev").textContent = placeholder;
+  $("quote-vol").textContent = placeholder;
+  $("quote-52w").textContent = placeholder;
+}
 async function loadQuote() {
-  const priceEl = $("quote-price"), chEl = $("quote-change"), meta = $("quote-meta");
-  priceEl.textContent = "…"; chEl.textContent = "…"; chEl.className = "";
-  $("quote-prev").textContent = $("quote-open").textContent = $("quote-range").textContent = $("quote-vol").textContent = $("quote-52w").textContent = "…";
-  meta.textContent = "Fetching Yahoo-style snapshot…";
+  const chEl = $("quote-change"), meta = $("quote-meta");
+  clearQuoteFields("…");
+  meta.textContent = "Fetching day snapshot…";
   try {
     const y = toYahooSymbol(state.selected);
     const data = await fetchJson("https://finance-query.com/v2/quote/" + encodeURIComponent(y));
-    const last = data.regularMarketPrice ?? data.currentPrice;
-    if (!Number.isFinite(Number(last))) throw new Error("no last");
+    // Session end / last print from the snapshot — not a streamed tick.
+    const close = data.regularMarketPrice ?? data.currentPrice ?? data.regularMarketPreviousClose;
+    if (!Number.isFinite(Number(close))) throw new Error("no close");
     const prev = data.regularMarketPreviousClose ?? data.previousClose;
+    const open = data.regularMarketOpen ?? data.open;
+    const hi = data.regularMarketDayHigh ?? data.dayHigh;
+    const lo = data.regularMarketDayLow ?? data.dayLow;
     const chPct = Number.isFinite(Number(data.regularMarketChangePercent))
       ? Number(data.regularMarketChangePercent)
-      : (Number.isFinite(Number(prev)) && Number(prev) !== 0 ? (Number(last) - Number(prev)) / Number(prev) * 100 : NaN);
+      : (Number.isFinite(Number(prev)) && Number(prev) !== 0 ? (Number(close) - Number(prev)) / Number(prev) * 100 : NaN);
     const chAbs = data.regularMarketChange;
-    priceEl.textContent = fmtPx(last);
+    $("quote-open").textContent = fmtPx(open);
+    $("quote-high").textContent = fmtPx(hi);
+    $("quote-low").textContent = fmtPx(lo);
+    $("quote-price").textContent = fmtPx(close);
     if (Number.isFinite(chPct)) {
       const abs = Number.isFinite(Number(chAbs)) ? `${Number(chAbs) >= 0 ? "+" : ""}${fmtPx(chAbs)} ` : "";
       chEl.textContent = `${abs}${chPct >= 0 ? "+" : ""}${chPct.toFixed(2)}%`;
       chEl.className = chPct >= 0 ? "positive" : "negative";
     } else chEl.textContent = "—";
     $("quote-prev").textContent = fmtPx(prev);
-    $("quote-open").textContent = fmtPx(data.regularMarketOpen ?? data.open);
-    const lo = data.regularMarketDayLow ?? data.dayLow;
-    const hi = data.regularMarketDayHigh ?? data.dayHigh;
-    $("quote-range").textContent = (lo != null && hi != null) ? `${fmtPx(lo)} – ${fmtPx(hi)}` : "—";
     $("quote-vol").textContent = fmtVol(data.regularMarketVolume ?? data.volume);
     const wlo = data.fiftyTwoWeekLow, whi = data.fiftyTwoWeekHigh;
     $("quote-52w").textContent = (wlo != null && whi != null) ? `${fmtPx(wlo)} – ${fmtPx(whi)}` : "—";
     const asof = data.regularMarketTime ? new Date(Number(data.regularMarketTime) * 1000).toISOString() : "";
-    meta.textContent = `${data.shortName || y} · ${y} · ${data.currency || ""} · ${data.marketState || ""} · ${asof} · homework print`;
+    meta.textContent = `${data.shortName || y} · ${y} · ${data.currency || ""} · ${data.marketState || ""} · as of ${asof || "—"} · homework snapshot`;
   } catch (error) {
-    priceEl.textContent = "—"; chEl.textContent = "unavailable"; chEl.className = "";
-    $("quote-prev").textContent = $("quote-open").textContent = $("quote-range").textContent = $("quote-vol").textContent = $("quote-52w").textContent = "—";
+    clearQuoteFields("—");
+    chEl.textContent = "unavailable";
     meta.textContent = "Snapshot failed. " + (error.message || "");
   }
 }
 $("refresh-quote").addEventListener("click", loadQuote);
+// Periodic homework refresh only (5 min) — not a streaming quote loop.
 setInterval(() => { if (document.visibilityState === "visible") loadQuote(); }, 300000);

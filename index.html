@@ -52,17 +52,26 @@
             </select>
           </label>
           <div class="row" id="indicator-controls"></div>
-          <button type="button" id="refresh-quote">Refresh quote</button>
+          <button type="button" id="refresh-quote">Refresh snapshot</button>
         </div>
         <div class="quote-bar" id="quote-bar">
-          <div><small>Last</small><strong id="quote-price">—</strong></div>
-          <div><small>Change</small><strong id="quote-change">—</strong></div>
-          <div><small>Prev close</small><strong id="quote-prev">—</strong></div>
-          <div><small>Open</small><strong id="quote-open">—</strong></div>
-          <div><small>Day range</small><strong id="quote-range">—</strong></div>
-          <div><small>Volume</small><strong id="quote-vol">—</strong></div>
-          <div><small>52-week</small><strong id="quote-52w">—</strong></div>
-          <div><small>State / source</small><div class="muted" id="quote-meta">Yahoo-style snapshot</div></div>
+          <div class="quote-heading">
+            <strong>Day snapshot</strong>
+            <small class="muted">Yahoo-style homework print · not a live tick feed</small>
+          </div>
+          <div class="quote-ohlc">
+            <div><small>Open</small><strong id="quote-open">—</strong></div>
+            <div><small>High</small><strong id="quote-high">—</strong></div>
+            <div><small>Low</small><strong id="quote-low">—</strong></div>
+            <div><small>Close / Last</small><strong id="quote-price">—</strong></div>
+          </div>
+          <div class="quote-secondary">
+            <div><small>Change vs prev</small><strong id="quote-change">—</strong></div>
+            <div><small>Prev close</small><strong id="quote-prev">—</strong></div>
+            <div><small>Volume</small><strong id="quote-vol">—</strong></div>
+            <div><small>52-week</small><strong id="quote-52w">—</strong></div>
+            <div class="quote-meta-cell"><small>Market state / as of</small><div class="muted" id="quote-meta">Day snapshot via finance-query.com</div></div>
+          </div>
         </div>
         <div id="chart"></div>
       </section>
@@ -113,7 +122,7 @@
       </form>
     </aside>
   </div>
-  <footer>Personal analysis only. TradingView charts. Yahoo-style snapshot via finance-query.com.</footer>
+  <footer>Personal analysis only. TradingView charts. Day snapshot (Open / High / Low / Close) via finance-query.com — not a live tick feed.</footer>
   <div id="toast" role="status" hidden></div>
   <script src="core.js"></script>
   <script src="ui.js"></script>

@@ -43,9 +43,20 @@ a { color: #a5b4fc; }
 .chart-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 0 14px 12px; }
 .chart-toolbar select { width: auto; }
 .check { display: flex; align-items: center; gap: 5px; }
-.quote-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px 16px; padding: 10px 14px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--panel-alt); }
+.quote-bar { display: grid; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--panel-alt); }
+.quote-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }
+.quote-heading strong { font-size: 13px; letter-spacing: .02em; text-transform: uppercase; color: #cbd5e1; }
+.quote-ohlc { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px; }
+.quote-secondary { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px 16px; padding-top: 4px; border-top: 1px solid #1e293b; }
 .quote-bar strong { font-size: 18px; display: block; }
+.quote-ohlc strong { font-size: 20px; }
 .quote-bar small { color: var(--muted); }
+.quote-meta-cell { grid-column: span 2; min-width: 0; }
+.quote-meta-cell #quote-meta { font-size: 12px; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .quote-ohlc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quote-meta-cell { grid-column: 1 / -1; }
+}
 #chart { height: 650px; width: 100%; background: #0f172a; }
 .tradingview-widget-copyright { height: 32px; display: flex; justify-content: center; align-items: center; gap: 4px; font-size: 12px; }
 .notice { padding: 10px 14px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
