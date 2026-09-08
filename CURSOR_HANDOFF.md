@@ -11,7 +11,9 @@ You are continuing MarketDesk. Read `index.html` and `README.md` first. This is 
 - Exit date field separate from entry date.
 - Validated JSON backup export **and import** (preview + confirm).
 - Journal CSV export.
-- Quote strip from `finance-query.com` (equities/ETFs/futures Yahoo-style) and CoinGecko (crypto). Failures surface as quote unavailable, never as a fake number.
+- Quote strip from `finance-query.com`: Yahoo-style **day snapshot** (Open, High, Low, Close/Last) plus prev close, volume, 52w, market state. Not a live tick feed. Failures surface as unavailable, never as a fake number.
+- Daily US market update: top 3 bullish / top 3 bearish from finance-query `day-gainers` / `day-losers` screeners + liquid equity filter (click opens chart).
+- Stockbee Market Monitor reference section with public links + column-name cheat-sheet; no fabricated MM readings. Optional VIX/SPY/QQQ proxies labeled as non-MM.
 - TradingView attribution kept. Chart rebuild still isolated in `renderChart()`.
 
 ## Verify first
