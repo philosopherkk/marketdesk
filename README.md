@@ -2,7 +2,7 @@
 
 Repo: https://github.com/philosopherkk/marketdesk
 
-Files: `index.html`, `styles.css`, `core.js`, `ui.js`, `chart-quotes.js`, `journal.js`.
+Files: `index.html`, `styles.css`, `core.js`, `ui.js`, `chart-quotes.js`, `journal.js`, `market-panels.js`.
 
 ## Run locally
 
@@ -30,6 +30,6 @@ localStorage is per-origin. `localhost` and `github.io` are different workspaces
 
 ## Data
 
-Yahoo-style snapshot via finance-query.com. TradingView embed for charts. Manual journal.
+Yahoo-style day snapshot via finance-query.com (OHLC + daily US gainers/losers). TradingView embed for charts. Manual journal. Stockbee MM referenced with credit (numbers not invented).
 
 See CURSOR_HANDOFF.md.
