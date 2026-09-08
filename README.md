@@ -2,7 +2,7 @@
 
 Repo: https://github.com/philosopherkk/marketdesk
 
-Files: `index.html`, `styles.css`, `app.js`.
+Files: `index.html`, `styles.css`, `core.js`, `ui.js`, `chart-quotes.js`, `journal.js`.
 
 ## Run locally
 
@@ -14,13 +14,19 @@ Open http://localhost:8000
 
 ## Publish (GitHub Pages)
 
-Repo is private. Free Pages for a user account needs a public repo or a paid plan.
+Expected URL: https://philosopherkk.github.io/marketdesk/
 
-1. https://github.com/philosopherkk/marketdesk/settings — make Public if you want the free URL
-2. Settings → Pages → Deploy from a branch → main / root
-3. URL: https://philosopherkk.github.io/marketdesk/
+Deploy workflow: `.github/workflows/pages.yml` (GitHub Actions).
 
-localStorage is per-origin. Export before switching hosts.
+If Pages is not live yet, KK must click once:
+
+1. https://github.com/philosopherkk/marketdesk/settings/pages
+2. **Build and deployment → Source** → **GitHub Actions** (not “Deploy from a branch”)
+3. Re-run **Deploy Pages** under Actions, or push to `main`
+
+After that, `enablement: true` on `configure-pages` should keep Pages provisioned.
+
+localStorage is per-origin. `localhost` and `github.io` are different workspaces — export a backup before switching hosts.
 
 ## Data
 
