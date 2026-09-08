@@ -40,6 +40,8 @@ code { font-size: 0.9em; }
 .pref-group { display: inline-flex; gap: 4px; }
 .pref-group button.active { background: var(--badge-bg); border-color: var(--accent); color: var(--badge-fg); }
 .badge { font-size: 11px; color: var(--badge-fg); padding: 4px 9px; background: var(--badge-bg); border-radius: 20px; }
+.version-line { font-size: 12px; color: var(--muted); margin-top: 2px; letter-spacing: .01em; }
+footer .version-line { margin-bottom: 6px; color: var(--text); font-weight: 600; }
 .primary { background: var(--primary); border-color: var(--primary-border); color: white; }
 .primary:hover { filter: brightness(1.1); }
 .danger { color: var(--red); }

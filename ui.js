@@ -136,4 +136,6 @@ window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", ()
 });
 applyFontScale();
 applyTheme();
+document.querySelectorAll("[data-app-version]").forEach(el => { el.textContent = APP_VERSION; });
+document.querySelectorAll("[data-app-updated]").forEach(el => { el.textContent = APP_UPDATED; });
 if (!persistenceBlocked) $("storage-label").textContent = "Saved on this device/browser only · marketdesk:v1";
