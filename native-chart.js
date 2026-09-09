@@ -2,12 +2,17 @@
 
 /**
  * Native daily chart via Lightweight Charts v5.0.8 (vendored).
- * Exact SMA/EMA periods; overlay toggles without full recreate when possible.
+ * Candles + configurable SMA/EMA overlays, Volume, RSI, MACD panes.
+ * No TradingView embed / script / iframe.
  */
 const MarketDeskNative = (() => {
   let chart = null;
   let candleSeries = null;
   let volumeSeries = null;
+  let rsiSeriesApi = null;
+  let macdLineApi = null;
+  let macdSignalApi = null;
+  let macdHistApi = null;
   let lineSeries = new Map();
   let bars = [];
   let meta = null;
@@ -26,14 +31,30 @@ const MarketDeskNative = (() => {
       text: light ? "#0f172a" : "#e2e8f0",
       grid: light ? "rgba(15,23,42,0.08)" : "rgba(148,163,184,0.08)",
       up: "#10b981",
-      down: "#ef4444"
+      down: "#ef4444",
+      rsi: light ? "#0284c7" : "#38bdf8",
+      macd: light ? "#7c3aed" : "#a78bfa",
+      signal: light ? "#d97706" : "#f59e0b",
+      histUp: "rgba(16,185,129,0.55)",
+      histDown: "rgba(239,68,68,0.55)"
     };
+  }
+
+  function hasIndicator(key) {
+    return Array.isArray(state.indicators) && state.indicators.includes(key);
   }
 
   function destroy() {
     if (resizeObs) { try { resizeObs.disconnect(); } catch { /* */ } resizeObs = null; }
     if (chart) { try { chart.remove(); } catch { /* */ } }
-    chart = null; candleSeries = null; volumeSeries = null; lineSeries = new Map();
+    chart = null;
+    candleSeries = null;
+    volumeSeries = null;
+    rsiSeriesApi = null;
+    macdLineApi = null;
+    macdSignalApi = null;
+    macdHistApi = null;
+    lineSeries = new Map();
   }
 
   function overlayColor(o) {
@@ -57,6 +78,17 @@ const MarketDeskNative = (() => {
       const dist = ((close - v) / v) * 100;
       parts.push(`${o.type}${o.period}: ${v.toLocaleString("en-US", { maximumFractionDigits: 4 })} (${dist >= 0 ? "+" : ""}${dist.toFixed(2)}%)`);
     }
+    if (hasIndicator("RSI")) {
+      const rsi = MarketDeskMA.rsiSeries(bars, 14);
+      const rv = rsi[rsi.length - 1];
+      parts.push(rv == null ? "RSI14: —" : `RSI14: ${rv.toFixed(1)}`);
+    }
+    if (hasIndicator("MACD")) {
+      const m = MarketDeskMA.macdSeries(bars, 12, 26, 9);
+      const mv = m.macd[m.macd.length - 1];
+      const sv = m.signal[m.signal.length - 1];
+      parts.push(mv == null ? "MACD: —" : `MACD: ${mv.toFixed(3)} / sig ${sv == null ? "—" : sv.toFixed(3)}`);
+    }
     legend.textContent = parts.join(" · ");
   }
 
@@ -79,10 +111,105 @@ const MarketDeskNative = (() => {
         lastValueVisible: false,
         priceLineVisible: false,
         title: `${o.type}${o.period}`
-      });
+      }, 0);
       series.setData(points);
       lineSeries.set(o.id, series);
     }
+    syncLegend();
+  }
+
+  function clearStudySeries() {
+    const remove = (s) => { if (s) { try { chart.removeSeries(s); } catch { /* */ } } };
+    remove(volumeSeries); volumeSeries = null;
+    remove(rsiSeriesApi); rsiSeriesApi = null;
+    remove(macdLineApi); macdLineApi = null;
+    remove(macdSignalApi); macdSignalApi = null;
+    remove(macdHistApi); macdHistApi = null;
+  }
+
+  function applyStudyPanes() {
+    if (!chart || !bars.length) return;
+    const c = themeColors();
+    clearStudySeries();
+
+    // Drop extra panes (keep main price pane at index 0)
+    try {
+      const panes = chart.panes();
+      for (let i = panes.length - 1; i >= 1; i--) {
+        chart.removePane(panes[i]);
+      }
+    } catch { /* */ }
+
+    let nextPane = 1;
+
+    if (hasIndicator("Volume")) {
+      volumeSeries = chart.addSeries(lc().HistogramSeries, {
+        priceFormat: { type: "volume" },
+        priceScaleId: "vol",
+        lastValueVisible: false,
+        priceLineVisible: false
+      }, 0);
+      chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } });
+      volumeSeries.setData(bars.map(b => ({
+        time: b.time,
+        value: b.volume,
+        color: b.close >= b.open ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.35)"
+      })));
+    }
+
+    if (hasIndicator("RSI")) {
+      const rsiPane = nextPane++;
+      const rsi = MarketDeskMA.rsiSeries(bars, 14);
+      rsiSeriesApi = chart.addSeries(lc().LineSeries, {
+        color: c.rsi,
+        lineWidth: 2,
+        lastValueVisible: true,
+        priceLineVisible: false,
+        title: "RSI14",
+        priceFormat: { type: "price", precision: 1, minMove: 0.1 }
+      }, rsiPane);
+      rsiSeriesApi.setData(MarketDeskMA.linePointsFromBars(bars, rsi));
+      try {
+        chart.panes()[rsiPane].setHeight(110);
+        chart.panes()[rsiPane].priceScale("right").applyOptions({
+          scaleMargins: { top: 0.1, bottom: 0.1 }
+        });
+      } catch { /* */ }
+    }
+
+    if (hasIndicator("MACD")) {
+      const macdPane = nextPane++;
+      const m = MarketDeskMA.macdSeries(bars, 12, 26, 9);
+      macdHistApi = chart.addSeries(lc().HistogramSeries, {
+        lastValueVisible: false,
+        priceLineVisible: false,
+        title: "Hist"
+      }, macdPane);
+      macdHistApi.setData(MarketDeskMA.histPointsFromBars(bars, m.hist, c.histUp, c.histDown));
+      macdLineApi = chart.addSeries(lc().LineSeries, {
+        color: c.macd,
+        lineWidth: 2,
+        lastValueVisible: false,
+        priceLineVisible: false,
+        title: "MACD"
+      }, macdPane);
+      macdLineApi.setData(MarketDeskMA.linePointsFromBars(bars, m.macd));
+      macdSignalApi = chart.addSeries(lc().LineSeries, {
+        color: c.signal,
+        lineWidth: 1,
+        lastValueVisible: false,
+        priceLineVisible: false,
+        title: "Signal"
+      }, macdPane);
+      macdSignalApi.setData(MarketDeskMA.linePointsFromBars(bars, m.signal));
+      try { chart.panes()[macdPane].setHeight(130); } catch { /* */ }
+    }
+
+    try {
+      const panes = chart.panes();
+      if (panes[0]) panes[0].setStretchFactor(hasIndicator("RSI") || hasIndicator("MACD") ? 2.4 : 1);
+    } catch { /* */ }
+
     syncLegend();
   }
 
@@ -95,46 +222,32 @@ const MarketDeskNative = (() => {
       grid: { vertLines: { color: c.grid }, horzLines: { color: c.grid } }
     });
     applyOverlayLines();
+    applyStudyPanes();
     if (range) chart.timeScale().setVisibleLogicalRange(range);
   }
 
   async function loadBars(symbol) {
-    const yahoo = (typeof toYahooSymbol === "function") ? toYahooSymbol(symbol) : symbol.split(":")[1];
-    const data = await fetchJson("https://finance-query.com/v2/chart/" + encodeURIComponent(yahoo) + "?interval=1d&range=2y");
-    const candles = data.candles || [];
-    const out = [];
-    for (const c of candles) {
-      const t = Number(c.timestamp);
-      const o = finiteOrNull(c.open), h = finiteOrNull(c.high), l = finiteOrNull(c.low), cl = finiteOrNull(c.close);
-      const vol = finiteOrNull(c.volume);
-      if (!Number.isFinite(t) || o == null || h == null || l == null || cl == null) continue;
-      out.push({
-        time: t,
-        open: o, high: h, low: l, close: cl,
-        volume: vol == null ? 0 : vol
-      });
-    }
-    out.sort((a, b) => a.time - b.time);
-    // Lightweight Charts expects UTCTimestamp in seconds
-    meta = {
-      symbol: yahoo,
-      source: "finance-query.com / Yahoo-style daily",
-      range: data.range || "2y",
-      interval: "1d",
-      asOf: candles.length ? new Date(candles[candles.length - 1].timestamp * 1000).toISOString() : null,
-      count: out.length,
-      adjustment: "as reported by provider (adjClose not used for OHLC plot)"
-    };
-    return out;
+    if (!window.MarketDeskData) throw new Error("data-sources module failed to load");
+    const result = await MarketDeskData.loadDailyBars(symbol);
+    meta = result.meta;
+    return result.bars || [];
   }
 
   function mountEmpty(host) {
+    const hasKey = window.MarketDeskSecrets && MarketDeskSecrets.hasMassiveKey();
+    const cta = hasKey ? "" : `
+      <div class="notice-inline data-source-cta" id="massive-cta">
+        <strong>Preferred OHLC: Massive.com</strong> (formerly Polygon.io) Stocks Developer API — key not set on this device.
+        Enter your key below (stored only in local browser storage; never exported in backups; never committed).
+        Until configured, chart uses <em>labeled finance-query fallback</em> — not invented prices.
+      </div>`;
     host.innerHTML = `
       <div class="native-chart-shell">
-        <div id="native-chart-host" style="height:560px;width:100%"></div>
+        ${cta}
+        <div id="native-chart-host" style="height:640px;width:100%"></div>
         <div class="native-meta muted" id="native-meta"></div>
         <div class="native-legend" id="native-legend"></div>
-        <p class="muted chart-studies-note">Native daily chart · Lightweight Charts™ v5.0.8 · exact SMA/EMA (SMA-seeded). TradingView embed still available via Chart mode.</p>
+        <p class="muted chart-studies-note">Native daily chart · Lightweight Charts™ v5.0.8 · SMA/EMA · RSI14 · MACD(12,26,9) · Volume. No TradingView embed.</p>
       </div>`;
   }
 
@@ -158,28 +271,23 @@ const MarketDeskNative = (() => {
     candleSeries = chart.addSeries(lc().CandlestickSeries, {
       upColor: c.up, downColor: c.down, borderVisible: false,
       wickUpColor: c.up, wickDownColor: c.down
-    });
-    volumeSeries = chart.addSeries(lc().HistogramSeries, {
-      priceFormat: { type: "volume" },
-      priceScaleId: "vol"
-    });
-    chart.priceScale("vol").applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+    }, 0);
 
     try {
       bars = await loadBars(state.selected);
       if (!bars.length) throw new Error("no daily bars");
       candleSeries.setData(bars.map(b => ({ time: b.time, open: b.open, high: b.high, low: b.low, close: b.close })));
-      volumeSeries.setData(bars.map(b => ({
-        time: b.time,
-        value: b.volume,
-        color: b.close >= b.open ? "rgba(16,185,129,0.35)" : "rgba(239,68,68,0.35)"
-      })));
       chart.timeScale().fitContent();
       applyOverlayLines();
+      applyStudyPanes();
       const metaEl = $("native-meta");
       if (metaEl && meta) {
-        metaEl.textContent = `${meta.symbol} · ${meta.source} · ${meta.interval} · ${meta.range} · ${meta.count} bars · as of ${meta.asOf || "—"} · ${meta.adjustment}`;
+        const line = window.MarketDeskData && MarketDeskData.metaLine
+          ? MarketDeskData.metaLine(meta)
+          : "";
+        metaEl.textContent = `${meta.symbol} · ${meta.interval || "1d"} · ${meta.range || ""} · ${meta.count || 0} bars · ${line}`;
       }
+      if (typeof renderDataSourcePanel === "function") renderDataSourcePanel(meta);
     } catch (error) {
       mount.innerHTML = `<p class="notice-inline">Native chart failed: ${error.message || error}</p>`;
     }
@@ -193,10 +301,17 @@ const MarketDeskNative = (() => {
     applyOverlayLines();
   }
 
+  function applyIndicators() {
+    if (!chart || !bars.length) { if (hostEl) render(hostEl); return; }
+    applyStudyPanes();
+  }
+
   function setIntervalLabel() {
-    // Native path is daily history for MA accuracy regardless of TV interval selector.
+    // Native path is always daily history for MA/RSI/MACD accuracy.
     syncLegend();
   }
 
-  return { render, applyOverlays, setThemePreserveRange, setIntervalLabel, destroy };
+  return { render, applyOverlays, applyIndicators, setThemePreserveRange, setIntervalLabel, destroy };
 })();
+
+if (typeof window !== "undefined") window.MarketDeskNative = MarketDeskNative;

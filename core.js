@@ -2,8 +2,8 @@
 const STORAGE_KEY = "marketdesk:v1";
 const BREADTH_CACHE_KEY = "marketdesk:breadth-cache:v1";
 /** Bump on every publish. Shown in header/footer. Keep in sync with VERSION file. */
-const APP_VERSION = "1.3.0";
-const APP_UPDATED = "2026-09-08 HKT";
+const APP_VERSION = "1.4.0";
+const APP_UPDATED = "2026-09-09 HKT";
 const $ = id => document.getElementById(id);
 const CATALOG = [
   { symbol: "NASDAQ:AAPL", name: "Apple", market: "US" },
@@ -24,14 +24,13 @@ const CATALOG = [
   { symbol: "COINBASE:BTCUSD", name: "Bitcoin / USD", market: "Crypto" },
   { symbol: "COINBASE:ETHUSD", name: "Ethereum / USD", market: "Crypto" }
 ];
-const INDICATORS = {
-  RSI: "RSI@tv-basicstudies", MACD: "MACD@tv-basicstudies", BB: "BB@tv-basicstudies"
-};
+/** Native chart study toggles (drawn by Lightweight Charts — no TradingView). */
+const INDICATORS = { Volume: true, RSI: true, MACD: true };
 const INTERVALS = ["5", "15", "60", "240", "D", "W", "M"];
 const MARKETS = ["All", "US", "HK", "ETF", "Futures", "Crypto", "Other"];
 const FONT_SCALES = ["small", "medium", "large"];
 const THEMES = ["dark", "light", "system"];
-const CHART_PROVIDERS = ["tradingview", "native"];
+const CHART_PROVIDERS = ["native"];
 const MA_PRESETS = ["existing", "momentum", "trend", "fast", "weekly"];
 const YAHOO_EX_TO_TV = {
   NMS: "NASDAQ", NGM: "NASDAQ", NCM: "NASDAQ", NAS: "NASDAQ", NIQ: "NASDAQ",
@@ -119,9 +118,9 @@ const defaults = () => ({
   version: 1,
   selected: "NASDAQ:AAPL",
   interval: "D",
-  indicators: ["RSI", "MACD"],
+  indicators: ["Volume", "RSI", "MACD"],
   overlays: DEFAULT_OVERLAYS(),
-  chartProvider: "tradingview",
+  chartProvider: "native",
   maPreset: "existing",
   tradeFormCollapsed: false,
   watchlist: CATALOG.map(item => item.symbol),
@@ -153,17 +152,22 @@ function migrateState(data) {
   const next = { ...defaults(), ...data, version: 1 };
   if (!FONT_SCALES.includes(next.fontScale)) next.fontScale = "medium";
   if (!THEMES.includes(next.theme)) next.theme = "dark";
-  if (!CHART_PROVIDERS.includes(next.chartProvider)) next.chartProvider = "tradingview";
+  // TradingView removed in 1.4.0 — always native Lightweight Charts.
+  next.chartProvider = "native";
   if (!MA_PRESETS.includes(next.maPreset)) next.maPreset = "existing";
   next.tradeFormCollapsed = !!next.tradeFormCollapsed;
   if (next.tapeOverride != null && typeof next.tapeOverride !== "object") next.tapeOverride = null;
 
   const rawIndicators = Array.isArray(data.indicators) ? data.indicators : null;
   if (rawIndicators) {
-    // Preserve intentionally empty oscillator selection — do not restore RSI/MACD.
+    // Preserve intentionally empty study selection; drop legacy TV-only keys (EMA/SMA/BB).
     next.indicators = rawIndicators.filter(key => Object.hasOwn(INDICATORS, key));
+    // Pre-1.4 saves had RSI/MACD but not Volume — default Volume on when migrating.
+    if (!rawIndicators.includes("Volume") && !next.indicators.includes("Volume")) {
+      next.indicators = ["Volume", ...next.indicators];
+    }
   } else {
-    next.indicators = ["RSI", "MACD"];
+    next.indicators = ["Volume", "RSI", "MACD"];
   }
   const hadEma = Array.isArray(data.indicators) && data.indicators.includes("EMA");
   const hadSma = Array.isArray(data.indicators) && data.indicators.includes("SMA");
