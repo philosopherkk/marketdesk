@@ -73,6 +73,22 @@
         </div>
         <div class="padding stack">
           <p class="muted chart-studies-note">Native chart only (Lightweight Charts™). Overlays: enable · EMA/SMA · period · color · width · solid/dashed — then <strong>Apply overlays</strong>. Study toggles (Volume / RSI / MACD) draw immediately. Daily bars for exact periods. No TradingView script or iframe.</p>
+          <div class="data-source-panel" id="data-source-panel">
+            <div class="row wrap data-source-head">
+              <strong>Chart data source</strong>
+              <span class="badge" id="data-source-badge">…</span>
+            </div>
+            <p class="muted" id="data-source-detail">Preferred US OHLC: Massive.com Stocks Developer API. Index closes: Interactive Brokers (local). Keys stay on this device only.</p>
+            <div class="row wrap data-source-keys">
+              <label class="field grow">
+                <span>Massive.com API key (local only · not in backups)</span>
+                <input id="massive-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Stocks Developer key — never committed">
+              </label>
+              <button type="button" class="primary" id="save-massive-key">Save key</button>
+              <button type="button" id="clear-massive-key">Clear key</button>
+            </div>
+            <p class="muted" id="ib-index-note"></p>
+          </div>
           <div id="ma-overlay-controls"></div>
         </div>
         <div id="chart"></div>
@@ -205,12 +221,14 @@
   </div>
   <footer>
     <div class="version-line" id="footer-version">MarketDesk <span data-app-version></span> · updated <span data-app-updated></span></div>
-    Personal analysis only. Native Lightweight Charts™ (no TradingView). Day snapshots via finance-query.com. Stockbee MM reconstructed / not official. Saved on this device/browser only.
+    Personal analysis only. Native Lightweight Charts™ (no TradingView). Preferred US OHLC: Massive.com (local key). Index closes: IB (local). Day snapshots / fallback via finance-query.com. Stockbee MM reconstructed / not official. Saved on this device/browser only.
   </footer>
   <div id="toast" role="status" hidden></div>
   <script src="vendor/lightweight-charts-5.0.8.standalone.production.js"></script>
   <script src="core.js"></script>
+  <script src="secrets.js"></script>
   <script src="ma.js"></script>
+  <script src="data-sources.js"></script>
   <script src="ui.js"></script>
   <script src="chart-quotes.js"></script>
   <script src="native-chart.js"></script>

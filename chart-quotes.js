@@ -223,3 +223,72 @@ async function loadQuote() {
 }
 $("refresh-quote").addEventListener("click", loadQuote);
 setInterval(() => { if (document.visibilityState === "visible") loadQuote(); }, 300000);
+
+function renderDataSourcePanel(meta) {
+  const badge = $("data-source-badge");
+  const detail = $("data-source-detail");
+  const ibNote = $("ib-index-note");
+  const keyInput = $("massive-api-key");
+  if (!badge) return;
+  const hasKey = MarketDeskSecrets.hasMassiveKey();
+  if (keyInput && document.activeElement !== keyInput) {
+    keyInput.value = hasKey ? "••••••••••••" : "";
+    keyInput.dataset.hasKey = hasKey ? "1" : "0";
+  }
+  if (meta && meta.preferred) {
+    badge.textContent = "Massive.com";
+    badge.className = "badge";
+  } else {
+    badge.textContent = hasKey ? "Fallback" : "Fallback · key needed";
+    badge.className = "badge";
+  }
+  if (detail) {
+    const line = meta && MarketDeskData.metaLine(meta);
+    detail.textContent = line || (hasKey
+      ? "Massive key saved on this device. US equities/ETFs prefer Massive; other symbols use labeled finance-query fallback."
+      : "Preferred US OHLC: Massive.com Stocks Developer API. Enter key (local only). Until then: labeled finance-query fallback.");
+  }
+  if (ibNote) {
+    const ib = MarketDeskData.ibIndexCloseStatus();
+    ibNote.textContent = `${ib.label}: ${ib.detail}`;
+  }
+}
+
+function wireDataSourceControls() {
+  const save = $("save-massive-key");
+  const clear = $("clear-massive-key");
+  const keyInput = $("massive-api-key");
+  if (keyInput) {
+    keyInput.addEventListener("focus", () => {
+      if (keyInput.dataset.hasKey === "1") keyInput.value = "";
+    });
+  }
+  if (save) {
+    save.addEventListener("click", () => {
+      const raw = (keyInput && keyInput.value) || "";
+      if (!raw || raw.startsWith("••")) {
+        toast("Paste a Massive Stocks Developer API key first.");
+        return;
+      }
+      if (!MarketDeskSecrets.setMassiveKey(raw)) {
+        toast("Could not save key to local storage.");
+        return;
+      }
+      toast("Massive key saved on this device only (not in backups).");
+      renderDataSourcePanel(null);
+      renderChart();
+    });
+  }
+  if (clear) {
+    clear.addEventListener("click", () => {
+      MarketDeskSecrets.clearMassiveKey();
+      if (keyInput) { keyInput.value = ""; keyInput.dataset.hasKey = "0"; }
+      toast("Massive key cleared from this device.");
+      renderDataSourcePanel(null);
+      renderChart();
+    });
+  }
+  renderDataSourcePanel(null);
+}
+wireDataSourceControls();
+

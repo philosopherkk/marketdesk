@@ -227,41 +227,27 @@ const MarketDeskNative = (() => {
   }
 
   async function loadBars(symbol) {
-    const yahoo = (typeof toYahooSymbol === "function") ? toYahooSymbol(symbol) : symbol.split(":")[1];
-    const data = await fetchJson("https://finance-query.com/v2/chart/" + encodeURIComponent(yahoo) + "?interval=1d&range=2y");
-    const candles = data.candles || [];
-    const out = [];
-    for (const c of candles) {
-      const t = Number(c.timestamp);
-      const o = finiteOrNull(c.open), h = finiteOrNull(c.high), l = finiteOrNull(c.low), cl = finiteOrNull(c.close);
-      const vol = finiteOrNull(c.volume);
-      if (!Number.isFinite(t) || o == null || h == null || l == null || cl == null) continue;
-      out.push({
-        time: t,
-        open: o, high: h, low: l, close: cl,
-        volume: vol == null ? 0 : vol
-      });
-    }
-    out.sort((a, b) => a.time - b.time);
-    meta = {
-      symbol: yahoo,
-      source: "finance-query.com / Yahoo-style daily",
-      range: data.range || "2y",
-      interval: "1d",
-      asOf: candles.length ? new Date(candles[candles.length - 1].timestamp * 1000).toISOString() : null,
-      count: out.length,
-      adjustment: "as reported by provider (adjClose not used for OHLC plot)"
-    };
-    return out;
+    if (!window.MarketDeskData) throw new Error("data-sources module failed to load");
+    const result = await MarketDeskData.loadDailyBars(symbol);
+    meta = result.meta;
+    return result.bars || [];
   }
 
   function mountEmpty(host) {
+    const hasKey = window.MarketDeskSecrets && MarketDeskSecrets.hasMassiveKey();
+    const cta = hasKey ? "" : `
+      <div class="notice-inline data-source-cta" id="massive-cta">
+        <strong>Preferred OHLC: Massive.com</strong> (formerly Polygon.io) Stocks Developer API — key not set on this device.
+        Enter your key below (stored only in local browser storage; never exported in backups; never committed).
+        Until configured, chart uses <em>labeled finance-query fallback</em> — not invented prices.
+      </div>`;
     host.innerHTML = `
       <div class="native-chart-shell">
+        ${cta}
         <div id="native-chart-host" style="height:640px;width:100%"></div>
         <div class="native-meta muted" id="native-meta"></div>
         <div class="native-legend" id="native-legend"></div>
-        <p class="muted chart-studies-note">Native daily chart · Lightweight Charts™ v5.0.8 · SMA/EMA (SMA-seeded) · RSI14 · MACD(12,26,9) · Volume. No TradingView embed.</p>
+        <p class="muted chart-studies-note">Native daily chart · Lightweight Charts™ v5.0.8 · SMA/EMA · RSI14 · MACD(12,26,9) · Volume. No TradingView embed.</p>
       </div>`;
   }
 
@@ -296,8 +282,12 @@ const MarketDeskNative = (() => {
       applyStudyPanes();
       const metaEl = $("native-meta");
       if (metaEl && meta) {
-        metaEl.textContent = `${meta.symbol} · ${meta.source} · ${meta.interval} · ${meta.range} · ${meta.count} bars · as of ${meta.asOf || "—"} · ${meta.adjustment}`;
+        const line = window.MarketDeskData && MarketDeskData.metaLine
+          ? MarketDeskData.metaLine(meta)
+          : "";
+        metaEl.textContent = `${meta.symbol} · ${meta.interval || "1d"} · ${meta.range || ""} · ${meta.count || 0} bars · ${line}`;
       }
+      if (typeof renderDataSourcePanel === "function") renderDataSourcePanel(meta);
     } catch (error) {
       mount.innerHTML = `<p class="notice-inline">Native chart failed: ${error.message || error}</p>`;
     }

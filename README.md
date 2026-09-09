@@ -4,7 +4,7 @@ Repo: https://github.com/philosopherkk/marketdesk
 
 **Version:** see `VERSION` (also shown in the app header/footer). Bump version + HKT update date on every publish.
 
-Files: `index.html`, `styles.css`, `core.js`, `ui.js`, `chart-quotes.js`, `native-chart.js`, `ma.js`, `journal.js`, `market-panels.js`, `data/tape-daily.json`, `vendor/lightweight-charts-5.0.8.standalone.production.js`, `VERSION`.
+Files: `index.html`, `styles.css`, `core.js`, `secrets.js`, `data-sources.js`, `ui.js`, `chart-quotes.js`, `native-chart.js`, `ma.js`, `journal.js`, `market-panels.js`, `data/tape-daily.json`, `vendor/lightweight-charts-5.0.8.standalone.production.js`, `VERSION`.
 
 
 
@@ -34,6 +34,9 @@ localStorage is per-origin. `localhost` and `github.io` are different workspaces
 
 ## Data
 
-Yahoo-style day snapshot via finance-query.com (OHLC + daily US gainers/losers). Native Lightweight Charts™ for daily candles with SMA/EMA, RSI, MACD, Volume (no TradingView embed). Manual journal. Stockbee MM referenced with credit (numbers not invented).
+- **Preferred US equity/ETF OHLC:** [Massive.com](https://massive.com) (formerly Polygon.io) Stocks Developer API — paste key in the app; stored only in this browser (`marketdesk:secrets:v1`), never committed, excluded from Export backup.
+- **Fallback:** finance-query.com (Yahoo-style), always labeled when used.
+- **Index closing levels:** Interactive Brokers (preferred for index closes) — requires local IB Gateway/TWS; not wired on static github.io (no IB tokens in frontend).
+- Manual journal. Stockbee MM referenced with credit (numbers not invented).
 
 See CURSOR_HANDOFF.md.

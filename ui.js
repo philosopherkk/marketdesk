@@ -6,8 +6,10 @@ function downloadBlob(filename, blob) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 $("export").addEventListener("click", () => {
-  const backup = { ...state, exportedAt: new Date().toISOString() };
+  // Workspace backup never includes Massive/IB secrets (separate localStorage bucket).
+  const backup = MarketDeskSecrets.scrubBackupObject({ ...state, exportedAt: new Date().toISOString() });
   downloadBlob(`marketdesk-backup-${localDate()}.json`, new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }));
+  toast("Backup exported (API keys excluded).");
 });
 $("import-btn").addEventListener("click", () => $("import-file").click());
 $("import-file").addEventListener("change", async event => {
