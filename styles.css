@@ -73,7 +73,9 @@ footer .version-line { margin-bottom: 6px; color: var(--text); font-weight: 600;
 .quote-meta-cell { grid-column: span 2; min-width: 0; }
 .quote-meta-cell #quote-meta { font-size: 12px; overflow-wrap: anywhere; }
 #chart { height: 650px; width: 100%; background: var(--chart-bg); }
-.tradingview-widget-copyright { height: 32px; display: flex; justify-content: center; align-items: center; gap: 4px; font-size: 12px; }
+.native-chart-shell { width: 100%; }
+.native-legend { font-size: 12px; padding: 6px 12px; color: var(--muted, #94a3b8); line-height: 1.4; }
+.native-meta { font-size: 11px; padding: 4px 12px; }
 .notice { padding: 10px 14px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
 .field { display: grid; gap: 5px; }
 .field > span { color: var(--muted); font-size: 12px; }

@@ -131,14 +131,14 @@ $("theme-toggle").addEventListener("click", () => {
   const current = resolvedTheme();
   state.theme = current === "light" ? "dark" : "light";
   persist(); applyTheme();
-  if (state.chartProvider === "native" && window.MarketDeskNative) MarketDeskNative.setThemePreserveRange();
+  if (window.MarketDeskNative) MarketDeskNative.setThemePreserveRange();
   else renderChart();
   if (typeof renderOverlayEditor === "function") renderOverlayEditor();
 });
 window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
   if (state.theme === "system") {
     applyTheme();
-    if (state.chartProvider === "native" && window.MarketDeskNative) MarketDeskNative.setThemePreserveRange();
+    if (window.MarketDeskNative) MarketDeskNative.setThemePreserveRange();
     else renderChart();
   }
 });

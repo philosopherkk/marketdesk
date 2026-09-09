@@ -1,46 +1,26 @@
-# GROK_STATUS — 2026-09-08 HKT · v1.3.0 (Astra Phase 1+2)
+# MarketDesk status — 1.4.0 (2026-09-09 HKT)
 
-## Version
-
-MarketDesk **1.3.0** · updated **2026-09-08 HKT**
-
-## Phase 1 checklist
+## Chart (native only)
 
 | Item | Status |
-|------|--------|
-| TV MA period verification | Documented: public embed accepts object `{id, inputs:{length}}` best-effort; UI notes prefer **Native** for exact periods (no iframe scrape of rendered lengths) |
-| Independent overlays (enable/type/period/color/width/style) | Done |
-| Batch TV overlay changes behind **Apply** | Done |
-| Preserve empty oscillator selection on migrate | Done |
-| `finiteOrNull` / no `Number(null)→0`; quote request id stale guard | Done |
-| SMA 200 requires full 200 bars; MM denominators = eligible only | Done |
-| Snapshot below chart; collapsible trade form | Done |
-| Journal/P&L unchanged | Done |
+|---|---|
+| TradingView embed / script / iframe removed | Done |
+| Lightweight Charts™ v5.0.8 native daily chart | Done |
+| Configurable SMA/EMA overlays (enable/type/period/color/width/style) | Done |
+| Apply overlays batches redraw without full refetch | Done |
+| Volume / RSI14 / MACD(12,26,9) toggles that draw | Done |
+| MA presets (existing / momentum / trend / fast / weekly) | Done |
+| Persist overlays / indicators / trades in `marketdesk:v1` | Done (trades untouched) |
+| chartProvider forced to `native` on migrate | Done |
 
-## Phase 2 checklist
+## Preserved
 
-| Item | Status |
-|------|--------|
-| Lightweight Charts **v5.0.8** vendored | `vendor/lightweight-charts-5.0.8.standalone.production.js` |
-| TradingView mode kept | Done |
-| `ma.js` SMA + SMA-seeded EMA; unit tests | `test/ma.test.js` PASS |
-| Presets (existing default, momentum, trend, fast, weekly) | Done |
-| Persist overlays/chartProvider/maPreset in `marketdesk:v1` migrator | Done (trades untouched) |
-| Native meta + LC attribution | Done |
-| Legend distance to MAs; theme preserve range | Done |
+- Journal / P&L (`marketdesk:v1` trades)
+- US bare tickers
+- Tape desk + Stockbee MM table
+- Daylight/Dark theme + A−/A/A+ fonts
+- Day OHLC snapshot via finance-query.com
 
-## TV verification note
+## Notes
 
-Object-form studies are widely reported to work on Advanced Chart / widget constructors; the free `embed-widget-advanced-chart.js` path remains best-effort (default length 9 if inputs ignored). MarketDesk therefore defaults TV to configured overlays via Apply, and offers Native for acceptance-tested periods.
-
-## MA unit tests (node)
-
-```
-SMA(3)[1,2,3,4,5] → [null,null,2,3,4]
-EMA(3) SMA-seeded → [null,null,2,3,4]
-flat stays flat; <N bars → nulls; missing close throws; finiteOrNull(null)=null
-```
-
-## Reminder
-
-localStorage per-origin. `localhost` ≠ `github.io`.
+Native chart always uses daily history for exact MA/RSI/MACD periods. Interval selector is retained for preference only (`*` = not used by chart).

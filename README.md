@@ -34,6 +34,6 @@ localStorage is per-origin. `localhost` and `github.io` are different workspaces
 
 ## Data
 
-Yahoo-style day snapshot via finance-query.com (OHLC + daily US gainers/losers). TradingView embed for charts. Manual journal. Stockbee MM referenced with credit (numbers not invented).
+Yahoo-style day snapshot via finance-query.com (OHLC + daily US gainers/losers). Native Lightweight Charts™ for daily candles with SMA/EMA, RSI, MACD, Volume (no TradingView embed). Manual journal. Stockbee MM referenced with credit (numbers not invented).
 
 See CURSOR_HANDOFF.md.

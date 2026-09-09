@@ -3,7 +3,6 @@
 /** Draft overlays edited in UI; committed overlays live in state.overlays until Apply. */
 let draftOverlays = null;
 let quoteRequestId = 0;
-let tvPeriodNote = "TV embed: object-form MA studies with inputs.length are best-effort; prefer Native chart for exact periods.";
 
 function cloneOverlays(list) {
   return (list || []).map(o => ({ ...o }));
@@ -13,61 +12,14 @@ function ensureDraftOverlays() {
   return draftOverlays;
 }
 
-function buildTvStudiesFromOverlays(overlays, oscillators) {
-  const studies = (oscillators || []).map(key => INDICATORS[key]);
-  for (const o of overlays || []) {
-    if (!o.enabled) continue;
-    studies.push({
-      id: o.type === "EMA" ? "MAExp@tv-basicstudies" : "MASimple@tv-basicstudies",
-      version: 60,
-      inputs: { length: o.period }
-    });
-  }
-  return studies;
-}
-
 function renderChart() {
   const host = $("chart");
   host.replaceChildren();
-  if (state.chartProvider === "native") {
-    if (window.MarketDeskNative && typeof MarketDeskNative.render === "function") {
-      MarketDeskNative.render(host);
-    } else {
-      host.innerHTML = "<p class='notice-inline'>Native chart module failed to load.</p>";
-    }
-    return;
+  if (window.MarketDeskNative && typeof MarketDeskNative.render === "function") {
+    MarketDeskNative.render(host);
+  } else {
+    host.innerHTML = "<p class='notice-inline'>Native chart module failed to load.</p>";
   }
-  const container = document.createElement("div");
-  container.className = "tradingview-widget-container";
-  container.style.height = "100%"; container.style.width = "100%";
-  const chart = document.createElement("div");
-  chart.className = "tradingview-widget-container__widget";
-  chart.style.height = "calc(100% - 32px)"; chart.style.width = "100%";
-  const credit = document.createElement("div"); credit.className = "tradingview-widget-copyright";
-  const link = document.createElement("a");
-  link.href = "https://www.tradingview.com/chart/?symbol=" + encodeURIComponent(state.selected);
-  link.target = "_blank"; link.rel = "noopener nofollow"; link.textContent = `${state.selected} chart`;
-  const attribution = document.createElement("span"); attribution.textContent = "by TradingView";
-  credit.append(link, attribution);
-  const script = document.createElement("script");
-  script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-  script.type = "text/javascript"; script.async = true;
-  const theme = resolvedTheme();
-  script.textContent = JSON.stringify({
-    autosize: true, symbol: state.selected, interval: state.interval, timezone: "exchange",
-    theme, style: "1", locale: "en",
-    backgroundColor: theme === "light" ? "#ffffff" : "#0f172a",
-    gridColor: theme === "light" ? "rgba(15, 23, 42, 0.08)" : "rgba(148, 163, 184, 0.08)",
-    hide_top_toolbar: false, hide_side_toolbar: false,
-    hide_legend: false, hide_volume: false, withdateranges: true, save_image: true,
-    allow_symbol_change: false, calendar: false, details: false, hotlist: false,
-    studies: buildTvStudiesFromOverlays(state.overlays, state.indicators),
-    support_host: "https://www.tradingview.com"
-  });
-  script.onerror = () => { if (container.isConnected) toast("Chart script could not load."); };
-  container.append(chart, credit); host.appendChild(container); container.appendChild(script);
-  const note = $("tv-ma-note");
-  if (note) note.textContent = tvPeriodNote + " Use chart mode Native for verified SMA/EMA periods.";
 }
 
 function renderOscillatorControls() {
@@ -81,8 +33,11 @@ function renderOscillatorControls() {
         ? [...new Set([...state.indicators, key])]
         : state.indicators.filter(item => item !== key);
       persist();
-      // Oscillators still require TV rebuild; native ignores them for now.
-      if (state.chartProvider === "tradingview") renderChart();
+      if (window.MarketDeskNative && typeof MarketDeskNative.applyIndicators === "function") {
+        MarketDeskNative.applyIndicators();
+      } else {
+        renderChart();
+      }
     });
     label.append(checkbox, document.createTextNode(key));
     $("indicator-controls").appendChild(label);
@@ -140,9 +95,9 @@ function renderOverlayEditor() {
   const apply = document.createElement("button"); apply.type = "button"; apply.className = "primary"; apply.textContent = "Apply overlays";
   apply.addEventListener("click", () => {
     state.overlays = cloneOverlays(draftOverlays);
-    state.maPreset = "existing"; // custom after edit
+    state.maPreset = "existing";
     persist();
-    if (state.chartProvider === "native" && window.MarketDeskNative) MarketDeskNative.applyOverlays(state.overlays);
+    if (window.MarketDeskNative) MarketDeskNative.applyOverlays(state.overlays);
     else renderChart();
     toast("Overlays applied.");
   });
@@ -153,8 +108,6 @@ function renderOverlayEditor() {
 }
 
 function renderChartProviderControls() {
-  const sel = $("chart-provider");
-  if (sel) sel.value = state.chartProvider;
   const preset = $("ma-preset");
   if (preset) preset.value = state.maPreset;
 }
@@ -168,19 +121,11 @@ function renderIndicatorControls() {
 $("interval").value = state.interval;
 $("interval").addEventListener("change", event => {
   state.interval = event.target.value; persist();
-  if (state.chartProvider === "native" && window.MarketDeskNative) MarketDeskNative.setIntervalLabel(state.interval);
-  else renderChart();
+  // Native chart always uses daily bars; interval is retained for preference only.
+  if (window.MarketDeskNative) MarketDeskNative.setIntervalLabel(state.interval);
 });
 $("reload-chart").addEventListener("click", renderChart);
 
-document.addEventListener("DOMContentLoaded", () => {});
-const providerEl = $("chart-provider");
-if (providerEl) {
-  providerEl.addEventListener("change", () => {
-    state.chartProvider = providerEl.value;
-    persist(); renderChart();
-  });
-}
 const presetEl = $("ma-preset");
 if (presetEl) {
   presetEl.addEventListener("change", () => {
@@ -190,7 +135,7 @@ if (presetEl) {
     state.overlays = PRESET_OVERLAYS[key]();
     draftOverlays = cloneOverlays(state.overlays);
     persist(); renderOverlayEditor();
-    if (state.chartProvider === "native" && window.MarketDeskNative) MarketDeskNative.applyOverlays(state.overlays);
+    if (window.MarketDeskNative) MarketDeskNative.applyOverlays(state.overlays);
     else renderChart();
   });
 }
@@ -243,7 +188,7 @@ async function loadQuote() {
   try {
     const y = toYahooSymbol(symbolAtStart);
     const data = await fetchJson("https://finance-query.com/v2/quote/" + encodeURIComponent(y));
-    if (requestId !== quoteRequestId || state.selected !== symbolAtStart) return; // stale
+    if (requestId !== quoteRequestId || state.selected !== symbolAtStart) return;
     const close = finiteOrNull(data.regularMarketPrice ?? data.currentPrice ?? data.regularMarketPreviousClose);
     if (close === null) throw new Error("no close");
     const prev = finiteOrNull(data.regularMarketPreviousClose ?? data.previousClose);
