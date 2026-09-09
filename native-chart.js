@@ -313,3 +313,5 @@ const MarketDeskNative = (() => {
 
   return { render, applyOverlays, applyIndicators, setThemePreserveRange, setIntervalLabel, destroy };
 })();
+
+if (typeof window !== "undefined") window.MarketDeskNative = MarketDeskNative;
