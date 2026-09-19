@@ -6,8 +6,6 @@ Repo: https://github.com/philosopherkk/marketdesk
 
 Files: `index.html`, `styles.css`, `core.js`, `secrets.js`, `data-sources.js`, `ui.js`, `chart-quotes.js`, `native-chart.js`, `ma.js`, `journal.js`, `market-panels.js`, `data/tape-daily.json`, `vendor/lightweight-charts-5.0.8.standalone.production.js`, `VERSION`.
 
-
-
 ## Run locally
 
 ```bash
@@ -16,7 +14,21 @@ python3 -m http.server 8000
 
 Open http://localhost:8000
 
-## Publish (GitHub Pages)
+## Edit and deploy
+
+Source of truth is this repo, not chat history and not an editor buffer.
+
+1. New work: `git checkout -b feat/short-name` or `chore/…` (never commit on main).
+2. Edit files. On every publish, bump `VERSION` and `APP_VERSION` / `APP_UPDATED` (HKT) in `core.js`.
+3. `git add` only the files for this change. Commit. `git push -u origin HEAD`.
+4. Open the PR. KK reviews and merges `main`.
+5. After merge: hard-refresh https://philosopherkk.github.io/marketdesk/ and check **VERSION** in the header (matches `VERSION` / `APP_VERSION`).
+
+If you use Cursor, clone https://github.com/philosopherkk/marketdesk and pull before you edit. Same rules. Chat-only edits that are not committed do not exist.
+
+Tape bot owns morning desk notes (`data/tape-daily.json`). This repo owns the dashboard app.
+
+### GitHub Pages notes
 
 Expected URL: https://philosopherkk.github.io/marketdesk/
 
@@ -39,4 +51,4 @@ localStorage is per-origin. `localhost` and `github.io` are different workspaces
 - **Index closing levels:** Interactive Brokers (preferred for index closes) — requires local IB Gateway/TWS; not wired on static github.io (no IB tokens in frontend).
 - Manual journal. Stockbee MM referenced with credit (numbers not invented).
 
-See CURSOR_HANDOFF.md.
+See CURSOR_HANDOFF.md and AGENTS.md.
