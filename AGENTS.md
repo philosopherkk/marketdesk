@@ -61,6 +61,7 @@ PRs are the normal path: branch → PR → merge `main` → Pages Actions deploy
 - **Never** deploy from a bot’s cloud disk copy. Only from **this repo’s git remote**.
 - After KK merges: hard-refresh https://philosopherkk.github.io/marketdesk/ and confirm header **VERSION** / `APP_VERSION` and **APP_UPDATED** (HKT) match `origin/main`. If not, say so.
 - Chat-only edits that are not committed **do not exist**.
+- **CHANGELOG.md** entries come from **git**, not from chat. Chat-only notes are not history.
 
 **Allowed without extra ceremony** after KK approved the file edits: write files, commit, push a **feature/chore branch**, open PR and wait.
 
@@ -79,8 +80,9 @@ On **every publish** (release that should show up live):
 
 1. Bump `VERSION`
 2. Bump `APP_VERSION` and `APP_UPDATED` (HKT) in `core.js` — keep in sync with `VERSION`
-3. PR → merge `main` → wait for Pages Actions
-4. Hard-refresh the live URL and check VERSION in the header
+3. Append a `CHANGELOG.md` entry from **that git commit** (date, commit SHA, summary). Do not invent history from chat notes.
+4. PR → merge `main` → wait for Pages Actions
+5. Hard-refresh the live URL and check VERSION in the header (and that the footer **History** link opens `CHANGELOG.md` on GitHub)
 
 ## Hard rules
 
