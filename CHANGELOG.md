@@ -4,7 +4,7 @@ Git-sourced history for this app. Entries follow commits on `main`, not chat not
 
 ## [1.4.1] — 2026-09-19
 
-- **Commit:** `PENDING` (`PENDING`)
+- **Commit:** `47083b1` (`47083b1328329461c856c8b8a666871bc052c1ac`)
 - **Summary:** Add git-sourced `CHANGELOG.md`, footer History link to GitHub, and AGENTS publish rule to append CHANGELOG from the commit
 
 ## Docs — 2026-09-19 (PR #8)
