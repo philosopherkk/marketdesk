@@ -92,6 +92,12 @@
           <div id="ma-overlay-controls"></div>
         </div>
         <div id="chart"></div>
+        <aside class="company-profile" id="company-profile" aria-live="polite">
+          <h3 class="company-profile-title" id="company-profile-title">—</h3>
+          <p class="company-profile-mcap" id="company-profile-mcap" hidden></p>
+          <p class="company-profile-desc" id="company-profile-desc" hidden></p>
+          <p class="muted company-profile-status" id="company-profile-status">Company profile loads with the day snapshot.</p>
+        </aside>
         <div class="quote-bar" id="quote-bar">
           <div class="quote-heading">
             <strong>Day snapshot</strong>
@@ -175,7 +181,7 @@
           </div>
           <label class="check"><input type="checkbox" id="current-only"> Current ticker only</label>
         </div>
-        <p class="journal-note padding">Saved on this device/browser only under <code>marketdesk:v1</code> (per-origin — localhost ≠ github.io). Target is never an exit. Journal/P&amp;L logic unchanged in 1.4.0.</p>
+        <p class="journal-note padding">Saved on this device/browser only under <code>marketdesk:v1</code> (per-origin — localhost ≠ github.io). Target is never an exit. Journal/P&amp;L logic unchanged in 1.5.0.</p>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Date</th><th>Exit date</th><th>Symbol</th><th>Side</th><th>Qty × mult</th><th>Entry / saved</th><th>Stop</th><th>Target</th><th>Actual exit</th><th>Net P&L</th><th>Actions</th></tr></thead>
