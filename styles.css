@@ -74,10 +74,46 @@ footer .history-link:hover { filter: brightness(1.15); }
 .quote-bar small { color: var(--muted); }
 .quote-meta-cell { grid-column: span 2; min-width: 0; }
 .quote-meta-cell #quote-meta { font-size: 12px; overflow-wrap: anywhere; }
-#chart { height: 650px; width: 100%; background: var(--chart-bg); }
+#chart { min-height: 640px; height: auto; width: 100%; background: var(--chart-bg); overflow: visible; }
 .native-chart-shell { width: 100%; }
 .native-legend { font-size: 12px; padding: 6px 12px; color: var(--muted, #94a3b8); line-height: 1.4; }
 .native-meta { font-size: 11px; padding: 4px 12px; }
+.company-profile {
+  position: relative;
+  z-index: 1;
+  padding: 22px 14px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
+  max-width: 72rem;
+}
+.company-profile-title {
+  margin: 0;
+  font-size: 1.25em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: var(--text);
+}
+.company-profile-mcap {
+  margin: 8px 0 0;
+  font-size: 0.98em;
+  line-height: 1.45;
+  color: var(--text);
+}
+.company-profile-desc {
+  margin: 10px 0 0;
+  font-size: 0.95em;
+  line-height: 1.55;
+  color: var(--text);
+  max-width: 68ch;
+  overflow-wrap: anywhere;
+}
+.company-profile-status {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
 .notice { padding: 10px 14px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
 .field { display: grid; gap: 5px; }
 .field > span { color: var(--muted); font-size: 12px; }
@@ -111,6 +147,7 @@ footer .history-link:hover { filter: brightness(1.15); }
 .trade-panel.collapsed .panel-head h2::after { content: " (hidden)"; font-weight: 400; color: var(--muted); font-size: 12px; }
 .native-chart-shell { display: grid; gap: 8px; }
 .native-legend, .native-meta { padding: 0 14px 10px; font-size: 12px; overflow-wrap: anywhere; }
+.chart-panel .company-profile { border-top: 1px solid var(--border); }
 .chart-panel .quote-bar { border-top: 1px solid var(--border); }
 .mm-monitor-wrap { border: 1px solid var(--border); border-radius: 8px; overflow: auto; }
 .mm-monitor { width: 100%; border-collapse: collapse; font-size: 12px; white-space: normal; }
@@ -158,7 +195,11 @@ footer { padding: 0 20px 20px; color: var(--muted); font-size: 12px; }
   .header { padding: 14px; flex-wrap: wrap; }
   .workspace { grid-template-columns: 1fr; padding: 10px; }
   .watchlist { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 230px; }
-  #chart { height: 560px; }
+  #chart { min-height: 560px; }
+  #native-chart-host { height: 560px !important; }
+  .company-profile { padding: 18px 12px 14px; max-width: none; }
+  .company-profile-title { font-size: 1.08em; }
+  .company-profile-desc { max-width: none; }
   .symbol-form { grid-template-columns: 1fr auto; }
   .symbol-form input { grid-column: 1 / -1; }
   .badge { display: none; }

@@ -168,6 +168,109 @@ const fmtVol = v => {
   if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
   return String(n);
 };
+
+/** Compact USD (or other) market-cap label for the profile block. */
+function fmtMarketCapEn(mcap, currency) {
+  const n = finiteOrNull(mcap);
+  if (n === null || n <= 0) return null;
+  const cur = String(currency || "USD").toUpperCase();
+  const prefix = cur === "USD" ? "$" : (cur + " ");
+  if (n >= 1e12) return `~${prefix}${(n / 1e12).toFixed(2)}T`;
+  if (n >= 1e9) return `~${prefix}${(n / 1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `~${prefix}${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e3) return `~${prefix}${(n / 1e3).toFixed(1)}K`;
+  return `~${prefix}${Math.round(n).toLocaleString("en-US")}`;
+}
+
+/** Traditional Chinese 兆/億/萬 line when currency is USD (matches desk mock style). */
+function fmtMarketCapZhUsd(mcap) {
+  const n = finiteOrNull(mcap);
+  if (n === null || n <= 0) return null;
+  // 兆 ≈ 1 trillion (TW/HK financial usage); 億 = 100M
+  if (n >= 1e12) return `約 ${(n / 1e12).toFixed(2)} 兆美元`;
+  const yi = n / 1e8;
+  if (yi >= 0.1) {
+    const digits = yi >= 100 ? 0 : 1;
+    return `約 ${yi.toFixed(digits)} 億美元`;
+  }
+  const wan = n / 1e4;
+  if (wan >= 1) return `約 ${wan.toFixed(0)} 萬美元`;
+  return `約 ${Math.round(n).toLocaleString("zh-HK")} 美元`;
+}
+
+function bareFromSelected(tvSymbol, yahooFallback) {
+  const raw = String(tvSymbol || "");
+  const fromTv = raw.includes(":") ? raw.split(":")[1] : raw;
+  const bare = (fromTv || yahooFallback || "").toUpperCase().replace(/-/g, ".");
+  return bare || "—";
+}
+
+function clearCompanyProfile(statusText) {
+  const title = $("company-profile-title");
+  const mcap = $("company-profile-mcap");
+  const desc = $("company-profile-desc");
+  const status = $("company-profile-status");
+  if (!title) return;
+  title.textContent = bareFromSelected(state.selected);
+  if (mcap) { mcap.hidden = true; mcap.textContent = ""; }
+  if (desc) { desc.hidden = true; desc.textContent = ""; }
+  if (status) {
+    status.hidden = !statusText;
+    status.textContent = statusText || "";
+  }
+}
+
+function renderCompanyProfile(data, yahooSymbol) {
+  const title = $("company-profile-title");
+  const mcapEl = $("company-profile-mcap");
+  const descEl = $("company-profile-desc");
+  const status = $("company-profile-status");
+  if (!title) return;
+
+  const bare = bareFromSelected(state.selected, data.symbol || yahooSymbol);
+  const name = String(data.longName || data.shortName || data.displayName || "").trim();
+  title.textContent = name ? `${bare} ${name}` : bare;
+
+  const cur = data.currency || data.financialCurrency || "USD";
+  const en = fmtMarketCapEn(data.marketCap, cur);
+  if (mcapEl) {
+    if (en) {
+      const zh = String(cur).toUpperCase() === "USD" ? fmtMarketCapZhUsd(data.marketCap) : null;
+      mcapEl.textContent = zh
+        ? `Market cap: ${en} · 市值：${zh}`
+        : `Market cap: ${en}`;
+      mcapEl.hidden = false;
+    } else {
+      mcapEl.hidden = true;
+      mcapEl.textContent = "";
+    }
+  }
+
+  const summary = String(data.longBusinessSummary || "").trim();
+  if (descEl) {
+    if (summary) {
+      descEl.textContent = summary;
+      descEl.hidden = false;
+    } else {
+      descEl.hidden = true;
+      descEl.textContent = "";
+    }
+  }
+
+  if (status) {
+    if (!en && !summary) {
+      status.hidden = false;
+      status.textContent = "No market cap or company description in this snapshot.";
+    } else if (!summary) {
+      status.hidden = false;
+      status.textContent = "Description unavailable for this symbol.";
+    } else {
+      status.hidden = true;
+      status.textContent = "";
+    }
+  }
+}
+
 function clearQuoteFields(placeholder) {
   $("quote-open").textContent = placeholder;
   $("quote-high").textContent = placeholder;
@@ -184,6 +287,7 @@ async function loadQuote() {
   const symbolAtStart = state.selected;
   const chEl = $("quote-change"), meta = $("quote-meta");
   clearQuoteFields("…");
+  clearCompanyProfile("Loading company profile…");
   meta.textContent = "Fetching day snapshot…";
   try {
     const y = toYahooSymbol(symbolAtStart);
@@ -214,9 +318,11 @@ async function loadQuote() {
     $("quote-52w").textContent = (wlo !== null && whi !== null) ? `${fmtPx(wlo)} – ${fmtPx(whi)}` : "—";
     const asof = data.regularMarketTime ? new Date(Number(data.regularMarketTime) * 1000).toISOString() : "";
     meta.textContent = `${data.shortName || y} · ${y} · ${data.currency || ""} · ${data.marketState || ""} · as of ${asof || "—"} · homework snapshot`;
+    renderCompanyProfile(data, y);
   } catch (error) {
     if (requestId !== quoteRequestId || state.selected !== symbolAtStart) return;
     clearQuoteFields("—");
+    clearCompanyProfile("Company profile unavailable. " + (error.message || ""));
     chEl.textContent = "unavailable";
     meta.textContent = "Snapshot failed. " + (error.message || "");
   }
