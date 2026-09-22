@@ -74,21 +74,23 @@ footer .history-link:hover { filter: brightness(1.15); }
 .quote-bar small { color: var(--muted); }
 .quote-meta-cell { grid-column: span 2; min-width: 0; }
 .quote-meta-cell #quote-meta { font-size: 12px; overflow-wrap: anywhere; }
-#chart { height: 650px; width: 100%; background: var(--chart-bg); }
+#chart { min-height: 640px; height: auto; width: 100%; background: var(--chart-bg); overflow: visible; }
 .native-chart-shell { width: 100%; }
 .native-legend { font-size: 12px; padding: 6px 12px; color: var(--muted, #94a3b8); line-height: 1.4; }
 .native-meta { font-size: 11px; padding: 4px 12px; }
 .company-profile {
+  position: relative;
+  z-index: 1;
   padding: 22px 14px 16px;
   border-top: 1px solid var(--border);
-  background: var(--chart-bg);
+  background: var(--panel);
   color: var(--text);
   text-align: left;
   max-width: 72rem;
 }
 .company-profile-title {
   margin: 0;
-  font-size: 1.2em;
+  font-size: 1.25em;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.3;
@@ -193,7 +195,8 @@ footer { padding: 0 20px 20px; color: var(--muted); font-size: 12px; }
   .header { padding: 14px; flex-wrap: wrap; }
   .workspace { grid-template-columns: 1fr; padding: 10px; }
   .watchlist { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 230px; }
-  #chart { height: 560px; }
+  #chart { min-height: 560px; }
+  #native-chart-host { height: 560px !important; }
   .company-profile { padding: 18px 12px 14px; max-width: none; }
   .company-profile-title { font-size: 1.08em; }
   .company-profile-desc { max-width: none; }
