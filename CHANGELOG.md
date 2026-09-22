@@ -2,6 +2,11 @@
 
 Git-sourced history for this app. Entries follow commits on `main`, not chat notes.
 
+## [1.5.0] — 2026-09-22
+
+- **Commit:** `5dd0dab` (`5dd0dab29bd1f8b897c3239df9f36dd1962ef308`)
+- **Summary:** Add company profile block under the native chart (name, bilingual market cap, business summary from finance-query snapshot)
+
 ## [1.4.1] — 2026-09-19
 
 - **Commit:** `47083b1` (`47083b1328329461c856c8b8a666871bc052c1ac`)
@@ -25,7 +30,7 @@ Git-sourced history for this app. Entries follow commits on `main`, not chat not
 
 ## [1.2.0] — 2026-09-08
 
-- **Commit:** `5b8500f` (`5b8500fb92114a83361e3bdf77d2e8fcb83e528a`)
+- **Commit:** `5b8500f` (`5b8500fb92114a83361e3bdf77e8fcb83e528a`)
 - **Summary:** Add Stockbee MM table colors and free TV MA/EMA overlays (#4)
 
 ## [1.1.0] — 2026-09-08
