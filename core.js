@@ -1,9 +1,8 @@
 "use strict";
 const STORAGE_KEY = "marketdesk:v1";
-const BREADTH_CACHE_KEY = "marketdesk:breadth-cache:v1";
 /** Bump on every publish. Shown in header/footer. Keep in sync with VERSION file. */
-const APP_VERSION = "1.4.1";
-const APP_UPDATED = "2026-09-19 HKT";
+const APP_VERSION = "1.4.2";
+const APP_UPDATED = "2026-09-23 HKT";
 const $ = id => document.getElementById(id);
 const CATALOG = [
   { symbol: "NASDAQ:AAPL", name: "Apple", market: "US" },
