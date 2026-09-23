@@ -4,7 +4,7 @@ Git-sourced history for this app. Entries follow commits on `main`, not chat not
 
 ## [1.5.0] — 2026-09-23
 
-- **Commit:** _(filled after commit)_
+- **Commit:** `abf515c` (`abf515c5e3115e08c2fa6ed3ccf841d0795083b6`)
 - **Summary:** Bilingual (繁體中文 + English) short “current business” blurb under the ticker title chrome (`#current-symbol`); sourced from finance-query `longBusinessSummary` with faithful zh-TW paraphrase when API has EN only; quiet empty state when no description; chart UI cleanup from 1.4.2 preserved; supersedes draft PR #10 (under-chart English-centric profile)
 
 ## [1.4.2] — 2026-09-23
