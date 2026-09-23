@@ -21,7 +21,28 @@ const CATALOG = [
   { symbol: "CME_MINI:NQ1!", name: "E-mini Nasdaq continuous", market: "Futures" },
   { symbol: "COMEX:GC1!", name: "Gold continuous", market: "Futures" },
   { symbol: "COINBASE:BTCUSD", name: "Bitcoin / USD", market: "Crypto" },
-  { symbol: "COINBASE:ETHUSD", name: "Ethereum / USD", market: "Crypto" }
+  { symbol: "COINBASE:ETHUSD", name: "Ethereum / USD", market: "Crypto" },
+  // Desk demo names (also used as first-run watchlist seed — does not overwrite saved lists)
+  { symbol: "NASDAQ:PLTR", name: "Palantir", market: "US" },
+  { symbol: "NASDAQ:PANW", name: "Palo Alto Networks", market: "US" },
+  { symbol: "NASDAQ:FTNT", name: "Fortinet", market: "US" },
+  { symbol: "NASDAQ:LITE", name: "Lumentum", market: "US" },
+  { symbol: "NASDAQ:IREN", name: "IREN", market: "US" },
+  { symbol: "NYSE:SM", name: "SM Energy", market: "US" },
+  { symbol: "NASDAQ:NBIS", name: "Nebius", market: "US" },
+  { symbol: "NASDAQ:ARM", name: "Arm", market: "US" },
+  { symbol: "NASDAQ:SPCX", name: "SPCX", market: "US" },
+  { symbol: "AMEX:GLDM", name: "SPDR Gold MiniShares", market: "ETF" },
+  { symbol: "NASDAQ:AMZN", name: "Amazon", market: "US" },
+  { symbol: "NASDAQ:SNDK", name: "Sandisk", market: "US" },
+  { symbol: "NASDAQ:GOOG", name: "Alphabet", market: "US" }
+];
+
+/** First-run watchlist only (no localStorage). Never silently replaces an existing saved list. */
+const DEFAULT_WATCHLIST = [
+  "NASDAQ:PLTR", "NASDAQ:PANW", "NASDAQ:FTNT", "NASDAQ:LITE", "NASDAQ:TSLA",
+  "NASDAQ:IREN", "NYSE:SM", "NASDAQ:NBIS", "NASDAQ:QQQ", "NASDAQ:ARM",
+  "NASDAQ:SPCX", "AMEX:GLDM", "NASDAQ:AMZN", "NASDAQ:SNDK", "NASDAQ:GOOG"
 ];
 /** Native chart study toggles (drawn by Lightweight Charts — no TradingView). */
 const INDICATORS = { Volume: true, RSI: true, MACD: true };
@@ -115,14 +136,14 @@ function overlaysFromLegacyMaOverlays(legacy, hadEma, hadSma) {
 
 const defaults = () => ({
   version: 1,
-  selected: "NASDAQ:AAPL",
+  selected: "NASDAQ:LITE",
   interval: "D",
   indicators: ["Volume", "RSI", "MACD"],
   overlays: DEFAULT_OVERLAYS(),
   chartProvider: "native",
   maPreset: "existing",
   tradeFormCollapsed: false,
-  watchlist: CATALOG.map(item => item.symbol),
+  watchlist: DEFAULT_WATCHLIST.slice(),
   trades: [],
   fontScale: "medium",
   theme: "dark",
