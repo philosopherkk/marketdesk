@@ -50,6 +50,22 @@ footer .history-link:hover { filter: brightness(1.15); }
 .workspace { display: grid; grid-template-columns: 245px minmax(0, 1fr) 300px; gap: 14px; padding: 16px; align-items: start; max-width: 2200px; margin: auto; }
 .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; min-width: 0; }
 .panel-head { padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.chart-panel-head { align-items: flex-start; }
+.ticker-title-block { min-width: 0; flex: 1; display: grid; gap: 4px; }
+.ticker-title-block h2 { margin: 0; line-height: 1.25; }
+.ticker-title-block > small { color: var(--muted); }
+.ticker-business { margin-top: 6px; display: grid; gap: 4px; max-width: 72ch; }
+.ticker-business-zh,
+.ticker-business-en {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.ticker-business-zh { color: var(--text); opacity: 0.88; }
+.ticker-business-en { opacity: 0.92; }
+.ticker-business-status { margin: 0; font-size: 12px; }
 .padding { padding: 14px; }
 .stack { display: grid; gap: 12px; }
 .market-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; }
@@ -137,6 +153,7 @@ footer { padding: 0 20px 20px; color: var(--muted); font-size: 12px; }
   .watchlist { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 230px; }
   #chart { height: auto; }
   #native-chart-host { height: 520px; }
+  .ticker-business { max-width: none; }
   .symbol-form { grid-template-columns: 1fr auto; }
   .symbol-form input { grid-column: 1 / -1; }
   .badge { display: none; }

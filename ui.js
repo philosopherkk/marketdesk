@@ -64,6 +64,43 @@ function renderMarkets() {
     $("market-tabs").appendChild(button);
   }
 }
+function bareTicker(tvSymbol) {
+  const raw = String(tvSymbol || "");
+  return (raw.includes(":") ? raw.split(":")[1] : raw).toUpperCase();
+}
+
+/**
+ * Keep watchlist in EXCHANGE:TICKER form (same as chart). Prepend new symbols so
+ * they are visible immediately; drop any duplicate bare-ticker rows (e.g. stale prefix).
+ * Returns "added" | "moved" | "present".
+ */
+function ensureOnWatchlist(symbol, { bumpToFront = false } = {}) {
+  if (!validSymbol(symbol)) return "present";
+  const bare = bareTicker(symbol);
+  const exactIndex = state.watchlist.indexOf(symbol);
+  const otherBareDupes = state.watchlist.filter(s => s !== symbol && bareTicker(s) === bare);
+
+  if (exactIndex === -1) {
+    const cleaned = state.watchlist.filter(s => bareTicker(s) !== bare);
+    state.watchlist = [symbol, ...cleaned];
+    return otherBareDupes.length ? "moved" : "added";
+  }
+
+  // Exact row present — strip other-prefix bare dupes; optionally bump on Save.
+  let list = state.watchlist.filter(s => s === symbol || bareTicker(s) !== bare);
+  const cleanedDupes = list.length !== state.watchlist.length;
+  if (bumpToFront && list[0] !== symbol) {
+    list = [symbol, ...list.filter(s => s !== symbol)];
+    state.watchlist = list;
+    return "moved";
+  }
+  if (cleanedDupes) {
+    state.watchlist = list;
+    return "moved";
+  }
+  return "present";
+}
+
 function renderWatchlist() {
   const list = $("watchlist");
   const query = $("watch-search").value.trim().toLowerCase();
@@ -86,27 +123,41 @@ function renderWatchlist() {
     const empty = document.createElement("p"); empty.className = "empty"; empty.textContent = "No saved tickers match.";
     list.appendChild(empty);
   }
+  const active = list.querySelector(".watch-symbol.active");
+  if (active && typeof active.scrollIntoView === "function") {
+    try { active.scrollIntoView({ block: "nearest" }); } catch { /* */ }
+  }
 }
 let editingId = null; let formDirty = false;
-async function selectSymbol(symbolOrBare) {
+async function selectSymbol(symbolOrBare, { saveToWatchlist = true, bumpWatchlist = false } = {}) {
   const symbol = await normalizeSymbol(String(symbolOrBare));
   state.selected = symbol;
   $("symbol-input").value = symbol;
   $("current-symbol").textContent = symbol;
+  if (saveToWatchlist) {
+    const result = ensureOnWatchlist(symbol, { bumpToFront: bumpWatchlist });
+    if (result === "added") {
+      marketFilter = "All";
+      if ($("watch-search")) $("watch-search").value = "";
+      renderMarkets();
+    }
+  }
   if (!formDirty && !editingId) resetTradeForm();
   persist(); renderWatchlist(); renderJournal(); renderChart(); loadQuote();
 }
 $("symbol-form").addEventListener("submit", async event => {
   event.preventDefault();
-  try { await selectSymbol($("symbol-input").value); }
+  try { await selectSymbol($("symbol-input").value, { saveToWatchlist: true }); }
   catch (error) { toast(error.message); }
 });
 $("save-symbol").addEventListener("click", async () => {
   try {
     const symbol = await normalizeSymbol($("symbol-input").value);
-    if (!state.watchlist.includes(symbol)) state.watchlist.push(symbol);
+    ensureOnWatchlist(symbol, { bumpToFront: true });
     marketFilter = "All"; $("watch-search").value = "";
-    renderMarkets(); await selectSymbol(symbol); toast("Ticker saved to watchlist.");
+    renderMarkets();
+    await selectSymbol(symbol, { saveToWatchlist: true, bumpWatchlist: true });
+    toast("Ticker saved to watchlist.");
   } catch (error) { toast(error.message); }
 });
 $("watch-search").addEventListener("input", renderWatchlist);
