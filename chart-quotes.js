@@ -125,32 +125,72 @@ function pickApiZhSummary(data) {
   return "";
 }
 
+/** True when text has enough CJK ideographs to look like a real zh paraphrase. */
+function looksLikeZhTw(text) {
+  const s = String(text || "");
+  const cjk = s.match(/[\u4e00-\u9fff]/g);
+  return !!(cjk && cjk.length >= 8);
+}
+
+/**
+ * Reject clearly broken MT (quota banners, empty, or unrelated stock/futures filler
+ * that is not grounded in the English snapshot sentence).
+ */
+function isAcceptableZhParaphrase(translated, english) {
+  const zh = String(translated || "").trim();
+  const en = String(english || "");
+  if (!zh || !looksLikeZhTw(zh)) return false;
+  if (/MYMEMORY WARNING|QUERY LENGTH LIMIT|INVALID|RATE LIMIT/i.test(zh)) return false;
+  if (zh.toLowerCase() === en.toLowerCase()) return false;
+  // Drop garbled inserts that invent market-data caveats not present in EN.
+  if (/股票與期貨|股票与期货|不受股票/.test(zh) && !/stock|future|futures|index/i.test(en)) {
+    return false;
+  }
+  return true;
+}
+
+async function translateViaGoogleGtx(english) {
+  const url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-TW&dt=t&q="
+    + encodeURIComponent(String(english).slice(0, 450));
+  const payload = await fetchJson(url);
+  if (!Array.isArray(payload) || !Array.isArray(payload[0])) return "";
+  return payload[0].map(part => (part && part[0]) || "").join("").trim();
+}
+
+async function translateViaMyMemory(english) {
+  const url = "https://api.mymemory.translated.net/get?q="
+    + encodeURIComponent(String(english).slice(0, 450))
+    + "&langpair=en|zh-TW";
+  const payload = await fetchJson(url);
+  const translated = String(payload && payload.responseData && payload.responseData.translatedText || "").trim();
+  const status = Number(payload && payload.responseStatus);
+  if (!translated || (status && status !== 200)) return "";
+  return translated;
+}
+
 /**
  * Faithful Traditional Chinese paraphrase of the English snapshot summary.
- * Prefer API zh fields when present; otherwise MyMemory en→zh-TW (CORS-open, no key).
- * Never invent products — only paraphrase the factual English text.
+ * Prefer API zh fields when present; otherwise CORS-open en→zh-TW (Google gtx,
+ * then MyMemory). Never invent products — only paraphrase the factual English text.
  */
 async function paraphraseToZhTw(english, yahooSymbol) {
   const en = String(english || "").trim();
   if (!en) return "";
   const cacheKey = `${yahooSymbol || ""}|${en}`;
   if (zhParaphraseCache.has(cacheKey)) return zhParaphraseCache.get(cacheKey);
-  try {
-    const url = "https://api.mymemory.translated.net/get?q="
-      + encodeURIComponent(en.slice(0, 450))
-      + "&langpair=en|zh-TW";
-    const payload = await fetchJson(url);
-    const translated = String(payload && payload.responseData && payload.responseData.translatedText || "").trim();
-    const status = Number(payload && payload.responseStatus);
-    if (!translated || (status && status !== 200)) return "";
-    // Reject obvious non-translations / quota notices.
-    if (/MYMEMORY WARNING|QUERY LENGTH LIMIT|INVALID/i.test(translated)) return "";
-    if (translated.toLowerCase() === en.toLowerCase()) return "";
-    zhParaphraseCache.set(cacheKey, translated);
-    return translated;
-  } catch {
-    return "";
-  }
+
+  const tryOne = async (fn) => {
+    try {
+      const zh = await fn(en);
+      return isAcceptableZhParaphrase(zh, en) ? zh : "";
+    } catch {
+      return "";
+    }
+  };
+
+  const zh = (await tryOne(translateViaGoogleGtx)) || (await tryOne(translateViaMyMemory));
+  if (zh) zhParaphraseCache.set(cacheKey, zh);
+  return zh;
 }
 
 function clearTickerBusiness(statusText) {
