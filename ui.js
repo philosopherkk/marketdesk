@@ -22,7 +22,6 @@ $("import-file").addEventListener("change", async event => {
     if (!confirm(`Replace current workspace with this backup?\n${preview}`)) return;
     state = data;
     persist();
-    if (typeof draftOverlays !== "undefined") draftOverlays = null;
     $("symbol-input").value = state.selected;
     $("current-symbol").textContent = state.selected;
     $("interval").value = state.interval;
@@ -135,7 +134,6 @@ $("theme-toggle").addEventListener("click", () => {
   persist(); applyTheme();
   if (window.MarketDeskNative) MarketDeskNative.setThemePreserveRange();
   else renderChart();
-  if (typeof renderOverlayEditor === "function") renderOverlayEditor();
 });
 window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
   if (state.theme === "system") {

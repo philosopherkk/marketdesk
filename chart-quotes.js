@@ -1,16 +1,6 @@
 "use strict";
 
-/** Draft overlays edited in UI; committed overlays live in state.overlays until Apply. */
-let draftOverlays = null;
 let quoteRequestId = 0;
-
-function cloneOverlays(list) {
-  return (list || []).map(o => ({ ...o }));
-}
-function ensureDraftOverlays() {
-  if (!draftOverlays) draftOverlays = cloneOverlays(state.overlays);
-  return draftOverlays;
-}
 
 function renderChart() {
   const host = $("chart");
@@ -44,78 +34,8 @@ function renderOscillatorControls() {
   }
 }
 
-function renderOverlayEditor() {
-  const host = $("ma-overlay-controls");
-  if (!host) return;
-  host.replaceChildren();
-  const drafts = ensureDraftOverlays();
-  const table = document.createElement("div");
-  table.className = "overlay-editor stack";
-  for (const o of drafts) {
-    const row = document.createElement("div");
-    row.className = "overlay-row";
-    const en = document.createElement("input"); en.type = "checkbox"; en.checked = o.enabled;
-    en.addEventListener("change", () => { o.enabled = en.checked; });
-    const type = document.createElement("select");
-    ["EMA", "SMA"].forEach(t => {
-      const opt = document.createElement("option"); opt.value = t; opt.textContent = t; if (o.type === t) opt.selected = true;
-      type.appendChild(opt);
-    });
-    type.addEventListener("change", () => { o.type = type.value; });
-    const period = document.createElement("input"); period.type = "number"; period.min = 1; period.max = 500; period.value = o.period;
-    period.style.width = "64px";
-    period.addEventListener("change", () => {
-      const n = Math.round(Number(period.value));
-      o.period = Number.isFinite(n) && n >= 1 ? n : o.period;
-      period.value = o.period;
-    });
-    const color = document.createElement("input"); color.type = "color";
-    color.value = resolvedTheme() === "light" ? o.colorLight : o.colorDark;
-    color.addEventListener("input", () => {
-      if (resolvedTheme() === "light") o.colorLight = color.value; else o.colorDark = color.value;
-    });
-    const width = document.createElement("input"); width.type = "number"; width.min = 1; width.max = 6; width.value = o.width;
-    width.style.width = "52px";
-    width.addEventListener("change", () => {
-      const n = Math.round(Number(width.value));
-      o.width = Number.isFinite(n) && n >= 1 ? Math.min(6, n) : o.width;
-      width.value = o.width;
-    });
-    const style = document.createElement("select");
-    ["solid", "dashed"].forEach(s => {
-      const opt = document.createElement("option"); opt.value = s; opt.textContent = s; if (o.style === s) opt.selected = true;
-      style.appendChild(opt);
-    });
-    style.addEventListener("change", () => { o.style = style.value; });
-    const name = document.createElement("span"); name.className = "muted"; name.textContent = o.id;
-    row.append(en, type, period, color, width, style, name);
-    table.appendChild(row);
-  }
-  const actions = document.createElement("div"); actions.className = "row";
-  const apply = document.createElement("button"); apply.type = "button"; apply.className = "primary"; apply.textContent = "Apply overlays";
-  apply.addEventListener("click", () => {
-    state.overlays = cloneOverlays(draftOverlays);
-    state.maPreset = "existing";
-    persist();
-    if (window.MarketDeskNative) MarketDeskNative.applyOverlays(state.overlays);
-    else renderChart();
-    toast("Overlays applied.");
-  });
-  const reset = document.createElement("button"); reset.type = "button"; reset.textContent = "Reset draft";
-  reset.addEventListener("click", () => { draftOverlays = cloneOverlays(state.overlays); renderOverlayEditor(); });
-  actions.append(apply, reset);
-  host.append(table, actions);
-}
-
-function renderChartProviderControls() {
-  const preset = $("ma-preset");
-  if (preset) preset.value = state.maPreset;
-}
-
 function renderIndicatorControls() {
   renderOscillatorControls();
-  renderOverlayEditor();
-  renderChartProviderControls();
 }
 
 $("interval").value = state.interval;
@@ -125,20 +45,6 @@ $("interval").addEventListener("change", event => {
   if (window.MarketDeskNative) MarketDeskNative.setIntervalLabel(state.interval);
 });
 $("reload-chart").addEventListener("click", renderChart);
-
-const presetEl = $("ma-preset");
-if (presetEl) {
-  presetEl.addEventListener("change", () => {
-    const key = presetEl.value;
-    if (!PRESET_OVERLAYS[key]) return;
-    state.maPreset = key;
-    state.overlays = PRESET_OVERLAYS[key]();
-    draftOverlays = cloneOverlays(state.overlays);
-    persist(); renderOverlayEditor();
-    if (window.MarketDeskNative) MarketDeskNative.applyOverlays(state.overlays);
-    else renderChart();
-  });
-}
 
 function toYahooSymbol(tv) {
   const [ex, raw] = tv.split(":");
@@ -291,4 +197,3 @@ function wireDataSourceControls() {
   renderDataSourcePanel(null);
 }
 wireDataSourceControls();
-

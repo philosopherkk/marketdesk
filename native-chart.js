@@ -238,16 +238,15 @@ const MarketDeskNative = (() => {
     const cta = hasKey ? "" : `
       <div class="notice-inline data-source-cta" id="massive-cta">
         <strong>Preferred OHLC: Massive.com</strong> (formerly Polygon.io) Stocks Developer API — key not set on this device.
-        Enter your key below (stored only in local browser storage; never exported in backups; never committed).
+        Enter your key in Chart data source below (stored only in local browser storage; never exported in backups; never committed).
         Until configured, chart uses <em>labeled finance-query fallback</em> — not invented prices.
       </div>`;
     host.innerHTML = `
       <div class="native-chart-shell">
         ${cta}
-        <div id="native-chart-host" style="height:640px;width:100%"></div>
+        <div id="native-chart-host"></div>
         <div class="native-meta muted" id="native-meta"></div>
         <div class="native-legend" id="native-legend"></div>
-        <p class="muted chart-studies-note">Native daily chart · Lightweight Charts™ v5.0.8 · SMA/EMA · RSI14 · MACD(12,26,9) · Volume. No TradingView embed.</p>
       </div>`;
   }
 

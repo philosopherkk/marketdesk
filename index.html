@@ -53,43 +53,14 @@
           <button id="save-symbol" type="button">Save ticker</button>
         </form>
         <div class="chart-toolbar">
-          <label class="check">History note
+          <label class="check">Interval
             <select id="interval" title="Chart always uses daily bars for MA/RSI/MACD accuracy">
               <option value="5">5m*</option><option value="15">15m*</option><option value="60">1h*</option>
               <option value="240">4h*</option><option value="D" selected>1D</option><option value="W">1W*</option><option value="M">1M*</option>
             </select>
           </label>
-          <label class="check">MA preset
-            <select id="ma-preset">
-              <option value="existing">Existing MarketDesk</option>
-              <option value="momentum">Momentum swing</option>
-              <option value="trend">Trend structure</option>
-              <option value="fast">Fast momentum</option>
-              <option value="weekly">Weekly review</option>
-            </select>
-          </label>
           <div class="row" id="indicator-controls"></div>
           <button type="button" id="refresh-quote">Refresh snapshot</button>
-        </div>
-        <div class="padding stack">
-          <p class="muted chart-studies-note">Native chart only (Lightweight Charts™). Overlays: enable · EMA/SMA · period · color · width · solid/dashed — then <strong>Apply overlays</strong>. Study toggles (Volume / RSI / MACD) draw immediately. Daily bars for exact periods. No TradingView script or iframe.</p>
-          <div class="data-source-panel" id="data-source-panel">
-            <div class="row wrap data-source-head">
-              <strong>Chart data source</strong>
-              <span class="badge" id="data-source-badge">…</span>
-            </div>
-            <p class="muted" id="data-source-detail">Preferred US OHLC: Massive.com Stocks Developer API. Index closes: Interactive Brokers (local). Keys stay on this device only.</p>
-            <div class="row wrap data-source-keys">
-              <label class="field grow">
-                <span>Massive.com API key (local only · not in backups)</span>
-                <input id="massive-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Stocks Developer key — never committed">
-              </label>
-              <button type="button" class="primary" id="save-massive-key">Save key</button>
-              <button type="button" id="clear-massive-key">Clear key</button>
-            </div>
-            <p class="muted" id="ib-index-note"></p>
-          </div>
-          <div id="ma-overlay-controls"></div>
         </div>
         <div id="chart"></div>
         <div class="quote-bar" id="quote-bar">
@@ -109,6 +80,24 @@
             <div><small>Volume</small><strong id="quote-vol">—</strong></div>
             <div><small>52-week</small><strong id="quote-52w">—</strong></div>
             <div class="quote-meta-cell"><small>Market state / as of</small><div class="muted" id="quote-meta">Day snapshot via finance-query.com</div></div>
+          </div>
+        </div>
+        <div class="padding stack chart-source-block">
+          <div class="data-source-panel" id="data-source-panel">
+            <div class="row wrap data-source-head">
+              <strong>Chart data source</strong>
+              <span class="badge" id="data-source-badge">…</span>
+            </div>
+            <p class="muted" id="data-source-detail">Preferred US OHLC: Massive.com Stocks Developer API. Index closes: Interactive Brokers (local). Keys stay on this device only.</p>
+            <div class="row wrap data-source-keys">
+              <label class="field grow">
+                <span>Massive.com API key (local only · not in backups)</span>
+                <input id="massive-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Stocks Developer key — never committed">
+              </label>
+              <button type="button" class="primary" id="save-massive-key">Save key</button>
+              <button type="button" id="clear-massive-key">Clear key</button>
+            </div>
+            <p class="muted" id="ib-index-note"></p>
           </div>
         </div>
       </section>
@@ -136,37 +125,6 @@
           </div>
         </div>
       </section>
-      <section class="panel minervini-panel" id="minervini">
-        <div class="panel-head">
-          <div>
-            <h2>Minervini-style momentum (~20)</h2>
-            <small>Approximate trend template · public charts · not proprietary SEPA</small>
-          </div>
-          <button type="button" id="refresh-minervini">Refresh screen</button>
-        </div>
-        <div class="padding stack">
-          <p class="muted" id="minervini-meta">Pending…</p>
-          <div id="minervini-list"></div>
-        </div>
-      </section>
-      <section class="panel breadth-panel" id="market-breadth">
-        <div class="panel-head">
-          <div>
-            <h2>Market breadth · Stockbee MM-style</h2>
-            <small>Auto-filled reconstruction · not a buy signal by itself</small>
-          </div>
-          <button type="button" id="refresh-mm">Refresh breadth</button>
-        </div>
-        <div class="padding stack">
-          <p>
-            <strong>Stockbee Market Monitor (MM)</strong> layout with color coding.
-            Credit: <a href="https://stockbee.blogspot.com/p/mm.html" target="_blank" rel="noopener noreferrer">Stockbee MM</a>.
-            <strong>Reconstructed from public data — not official Stockbee membership numbers.</strong>
-          </p>
-          <div class="muted" id="mm-meta">Pending…</div>
-          <div id="mm-metrics"></div>
-        </div>
-      </section>
       <section class="panel journal">
         <div class="panel-head">
           <div>
@@ -175,7 +133,7 @@
           </div>
           <label class="check"><input type="checkbox" id="current-only"> Current ticker only</label>
         </div>
-        <p class="journal-note padding">Saved on this device/browser only under <code>marketdesk:v1</code> (per-origin — localhost ≠ github.io). Target is never an exit. Journal/P&amp;L logic unchanged in 1.4.0.</p>
+        <p class="journal-note padding">Saved on this device/browser only under <code>marketdesk:v1</code> (per-origin — localhost ≠ github.io). Target is never an exit. Journal/P&amp;L logic unchanged in 1.4.2.</p>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Date</th><th>Exit date</th><th>Symbol</th><th>Side</th><th>Qty × mult</th><th>Entry / saved</th><th>Stop</th><th>Target</th><th>Actual exit</th><th>Net P&L</th><th>Actions</th></tr></thead>
@@ -221,7 +179,7 @@
   </div>
   <footer>
     <div class="version-line" id="footer-version">MarketDesk <span data-app-version></span> · updated <span data-app-updated></span> · <a class="history-link" href="https://github.com/philosopherkk/marketdesk/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">History</a> · <a class="history-link" href="https://github.com/philosopherkk/marketdesk/commits/main" target="_blank" rel="noopener noreferrer">Commits</a></div>
-    Personal analysis only. Native Lightweight Charts™ (no TradingView). Preferred US OHLC: Massive.com (local key). Index closes: IB (local). Day snapshots / fallback via finance-query.com. Stockbee MM reconstructed / not official. Saved on this device/browser only.
+    Personal analysis only. Native Lightweight Charts™ (no TradingView). Preferred US OHLC: Massive.com (local key). Index closes: IB (local). Day snapshots / fallback via finance-query.com. Saved on this device/browser only.
   </footer>
   <div id="toast" role="status" hidden></div>
   <script src="vendor/lightweight-charts-5.0.8.standalone.production.js"></script>

@@ -2,6 +2,11 @@
 
 Git-sourced history for this app. Entries follow commits on `main`, not chat notes.
 
+## [1.4.2] — 2026-09-23
+
+- **Commit:** `209de1e` (`209de1e12ae65f54ff4057492ac525684ec05a22`)
+- **Summary:** Chart UI cleanup — remove EMA/SMA overlay editor + Apply/Reset chrome; raise chart; fix chart host overflow/overlap; delete Minervini and Stockbee MM panels; Massive.com path unchanged; version 1.4.2
+
 ## [1.4.1] — 2026-09-19
 
 - **Commit:** `47083b1` (`47083b1328329461c856c8b8a666871bc052c1ac`)
