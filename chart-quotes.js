@@ -146,7 +146,36 @@ function isAcceptableZhParaphrase(translated, english) {
   if (/股票與期貨|股票与期货|不受股票/.test(zh) && !/stock|future|futures|index/i.test(en)) {
     return false;
   }
+  // After stripping Latin company-name tokens, enough CJK must remain.
+  const cjkOnly = zh.replace(/[A-Za-z][A-Za-z0-9.&'’-]*/g, " ").replace(/\s+/g, " ").trim();
+  if (!looksLikeZhTw(cjkOnly)) return false;
   return true;
+}
+
+async function fetchJsonPost(url, body) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
+
+/** Prefer Taiwan Traditional orthography when a free CORS converter is available. */
+async function toTaiwanTraditional(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return "";
+  try {
+    const payload = await fetchJsonPost("https://api.zhconvert.org/convert", {
+      text: raw,
+      converter: "Taiwan"
+    });
+    const out = String(payload && payload.data && payload.data.text || "").trim();
+    return out || raw;
+  } catch {
+    return raw;
+  }
 }
 
 async function translateViaGoogleGtx(english) {
@@ -171,7 +200,7 @@ async function translateViaMyMemory(english) {
 /**
  * Faithful Traditional Chinese paraphrase of the English snapshot summary.
  * Prefer API zh fields when present; otherwise CORS-open en→zh-TW (Google gtx,
- * then MyMemory). Never invent products — only paraphrase the factual English text.
+ * then MyMemory), normalized via zhconvert Taiwan. Never invent products.
  */
 async function paraphraseToZhTw(english, yahooSymbol) {
   const en = String(english || "").trim();
@@ -181,7 +210,9 @@ async function paraphraseToZhTw(english, yahooSymbol) {
 
   const tryOne = async (fn) => {
     try {
-      const zh = await fn(en);
+      const raw = await fn(en);
+      if (!raw) return "";
+      const zh = await toTaiwanTraditional(raw);
       return isAcceptableZhParaphrase(zh, en) ? zh : "";
     } catch {
       return "";
