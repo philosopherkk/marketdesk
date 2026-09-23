@@ -74,6 +74,129 @@ const fmtVol = v => {
   if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
   return String(n);
 };
+
+/** In-memory cache: yahooSymbol|enText → Traditional Chinese paraphrase. */
+const zhParaphraseCache = new Map();
+
+/** Protect common corp abbreviations so "Inc." / "Ltd." do not end a sentence early. */
+function protectAbbreviations(text) {
+  return String(text || "")
+    .replace(/\b(Inc|Ltd|Corp|Co|LLC|LLP|PLC|S\.A|N\.V|A\.G|B\.V)\./gi, "$1\u0001");
+}
+function restoreAbbreviations(text) {
+  return String(text || "").replace(/\u0001/g, ".");
+}
+
+/** First 1–2 sentences, capped — readable beside the ticker title. */
+function shortenBusinessSummary(raw, maxSentences = 2, maxChars = 320) {
+  const text = String(raw || "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  const protectedText = protectAbbreviations(text);
+  const parts = protectedText.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [protectedText];
+  let out = "";
+  for (let i = 0; i < parts.length && i < maxSentences; i++) {
+    const piece = parts[i].trim();
+    if (!piece) continue;
+    const next = out ? `${out} ${piece}` : piece;
+    if (out && next.length > maxChars) break;
+    out = next;
+    if (out.length >= maxChars) break;
+  }
+  if (!out) out = protectedText.slice(0, maxChars);
+  out = restoreAbbreviations(out);
+  if (out.length > maxChars) {
+    out = out.slice(0, maxChars).replace(/\s+\S*$/, "").trim() + "…";
+  }
+  return out;
+}
+
+function pickApiZhSummary(data) {
+  const candidates = [
+    data.longBusinessSummaryZhTw,
+    data.longBusinessSummaryZh,
+    data.longBusinessSummaryZH,
+    data.businessSummaryZhTw,
+    data.businessSummaryZh
+  ];
+  for (const c of candidates) {
+    const s = String(c || "").trim();
+    if (s) return shortenBusinessSummary(s);
+  }
+  return "";
+}
+
+/**
+ * Faithful Traditional Chinese paraphrase of the English snapshot summary.
+ * Prefer API zh fields when present; otherwise MyMemory en→zh-TW (CORS-open, no key).
+ * Never invent products — only paraphrase the factual English text.
+ */
+async function paraphraseToZhTw(english, yahooSymbol) {
+  const en = String(english || "").trim();
+  if (!en) return "";
+  const cacheKey = `${yahooSymbol || ""}|${en}`;
+  if (zhParaphraseCache.has(cacheKey)) return zhParaphraseCache.get(cacheKey);
+  try {
+    const url = "https://api.mymemory.translated.net/get?q="
+      + encodeURIComponent(en.slice(0, 450))
+      + "&langpair=en|zh-TW";
+    const payload = await fetchJson(url);
+    const translated = String(payload && payload.responseData && payload.responseData.translatedText || "").trim();
+    const status = Number(payload && payload.responseStatus);
+    if (!translated || (status && status !== 200)) return "";
+    // Reject obvious non-translations / quota notices.
+    if (/MYMEMORY WARNING|QUERY LENGTH LIMIT|INVALID/i.test(translated)) return "";
+    if (translated.toLowerCase() === en.toLowerCase()) return "";
+    zhParaphraseCache.set(cacheKey, translated);
+    return translated;
+  } catch {
+    return "";
+  }
+}
+
+function clearTickerBusiness(statusText) {
+  const zhEl = $("ticker-business-zh");
+  const enEl = $("ticker-business-en");
+  const status = $("ticker-business-status");
+  if (!zhEl || !enEl || !status) return;
+  zhEl.hidden = true; zhEl.textContent = "";
+  enEl.hidden = true; enEl.textContent = "";
+  status.hidden = !statusText;
+  status.textContent = statusText || "";
+}
+
+async function renderTickerBusiness(data, yahooSymbol, requestId, symbolAtStart) {
+  const zhEl = $("ticker-business-zh");
+  const enEl = $("ticker-business-en");
+  const status = $("ticker-business-status");
+  if (!zhEl || !enEl || !status) return;
+
+  const enFull = String(data.longBusinessSummary || data.description || "").trim();
+  const enShort = shortenBusinessSummary(enFull);
+  if (!enShort) {
+    clearTickerBusiness("No company description in this snapshot.");
+    return;
+  }
+
+  enEl.textContent = enShort;
+  enEl.hidden = false;
+  status.hidden = true;
+  status.textContent = "";
+
+  let zh = pickApiZhSummary(data);
+  if (!zh) zh = await paraphraseToZhTw(enShort, yahooSymbol);
+  if (requestId !== quoteRequestId || state.selected !== symbolAtStart) return;
+
+  if (zh) {
+    zhEl.textContent = zh;
+    zhEl.hidden = false;
+  } else {
+    zhEl.hidden = true;
+    zhEl.textContent = "";
+    status.hidden = false;
+    status.textContent = "繁中摘要暫不可用（英文來自 snapshot）。";
+  }
+}
+
 function clearQuoteFields(placeholder) {
   $("quote-open").textContent = placeholder;
   $("quote-high").textContent = placeholder;
@@ -90,6 +213,7 @@ async function loadQuote() {
   const symbolAtStart = state.selected;
   const chEl = $("quote-change"), meta = $("quote-meta");
   clearQuoteFields("…");
+  clearTickerBusiness("Loading business summary…");
   meta.textContent = "Fetching day snapshot…";
   try {
     const y = toYahooSymbol(symbolAtStart);
@@ -120,9 +244,11 @@ async function loadQuote() {
     $("quote-52w").textContent = (wlo !== null && whi !== null) ? `${fmtPx(wlo)} – ${fmtPx(whi)}` : "—";
     const asof = data.regularMarketTime ? new Date(Number(data.regularMarketTime) * 1000).toISOString() : "";
     meta.textContent = `${data.shortName || y} · ${y} · ${data.currency || ""} · ${data.marketState || ""} · as of ${asof || "—"} · homework snapshot`;
+    await renderTickerBusiness(data, y, requestId, symbolAtStart);
   } catch (error) {
     if (requestId !== quoteRequestId || state.selected !== symbolAtStart) return;
     clearQuoteFields("—");
+    clearTickerBusiness("Business summary unavailable.");
     chEl.textContent = "unavailable";
     meta.textContent = "Snapshot failed. " + (error.message || "");
   }

@@ -42,8 +42,16 @@
     </aside>
     <main>
       <section class="panel chart-panel">
-        <div class="panel-head">
-          <div><h2 id="current-symbol"></h2><small>Market chart</small></div>
+        <div class="panel-head chart-panel-head">
+          <div class="ticker-title-block">
+            <h2 id="current-symbol"></h2>
+            <small>Market chart</small>
+            <div class="ticker-business" id="ticker-business" aria-live="polite">
+              <p class="ticker-business-zh" id="ticker-business-zh" lang="zh-Hant" hidden></p>
+              <p class="ticker-business-en" id="ticker-business-en" lang="en" hidden></p>
+              <p class="muted ticker-business-status" id="ticker-business-status"></p>
+            </div>
+          </div>
           <button id="reload-chart" type="button">Reload chart</button>
         </div>
         <form class="symbol-form" id="symbol-form">
@@ -133,7 +141,7 @@
           </div>
           <label class="check"><input type="checkbox" id="current-only"> Current ticker only</label>
         </div>
-        <p class="journal-note padding">Saved on this device/browser only under <code>marketdesk:v1</code> (per-origin — localhost ≠ github.io). Target is never an exit. Journal/P&amp;L logic unchanged in 1.4.2.</p>
+        <p class="journal-note padding">Saved on this device/browser only under <code>marketdesk:v1</code> (per-origin — localhost ≠ github.io). Target is never an exit. Journal/P&amp;L logic unchanged in 1.5.0.</p>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Date</th><th>Exit date</th><th>Symbol</th><th>Side</th><th>Qty × mult</th><th>Entry / saved</th><th>Stop</th><th>Target</th><th>Actual exit</th><th>Net P&L</th><th>Actions</th></tr></thead>
