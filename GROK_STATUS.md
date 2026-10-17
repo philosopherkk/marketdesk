@@ -1,4 +1,4 @@
-# MarketDesk status — 1.4.0 (2026-09-09 HKT)
+# MarketDesk status — 2026-09-09 HKT
 
 ## Chart (native only)
 

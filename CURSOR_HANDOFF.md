@@ -1,6 +1,6 @@
 # MarketDesk handoff
 
-## Current (1.4.0)
+## Current
 
 - Native Lightweight Charts™ only — no TradingView embed / script / iframe.
 - Configurable SMA/EMA overlays + Volume / RSI / MACD toggles that draw.
